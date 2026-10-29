@@ -20,18 +20,24 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import androidx.work.OneTimeWorkRequestBuilder
+import androidx.work.WorkInfo
+import androidx.work.WorkManager
+import androidx.work.workDataOf
 import java.util.UUID
 
 enum class AppTab {
     VIDEOS,
     MUSIC,
-    PLAYLISTS
+    PLAYLISTS,
+    DOWNLOADER
 }
 
 class MediaPlayerViewModel(application: Application) : AndroidViewModel(application) {
 
     val playback = PlaybackManager
     private val prefs = application.getSharedPreferences("vibe_player_checkpoints", Context.MODE_PRIVATE)
+    private val workManager = WorkManager.getInstance(application)
 
     private val _currentTab = MutableStateFlow(AppTab.VIDEOS)
     val currentTab: StateFlow<AppTab> = _currentTab.asStateFlow()
@@ -69,6 +75,12 @@ class MediaPlayerViewModel(application: Application) : AndroidViewModel(applicat
 
     private val _isFadeOutEnabled = MutableStateFlow(true)
     val isFadeOutEnabled: StateFlow<Boolean> = _isFadeOutEnabled.asStateFlow()
+
+    private val _activeDownloads = MutableStateFlow<List<DownloadItem>>(emptyList())
+    val activeDownloads: StateFlow<List<DownloadItem>> = _activeDownloads.asStateFlow()
+
+    private val _downloadUrl = MutableStateFlow("")
+    val downloadUrl: StateFlow<String> = _downloadUrl.asStateFlow()
 
     private var sleepTimerJob: Job? = null
 
@@ -616,6 +628,70 @@ class MediaPlayerViewModel(application: Application) : AndroidViewModel(applicat
 
     fun setBassBoost(percentage: Int) {
         playback.equalizerManager?.setBassBoost(percentage)
+    }
+
+    fun setDownloadUrl(url: String) {
+        _downloadUrl.value = url
+    }
+
+    fun startDownload(url: String, mediaType: MediaType) {
+        if (url.isBlank()) return
+        
+        val id = UUID.randomUUID().toString()
+        val fileName = "download_${System.currentTimeMillis()}.${if (mediaType == MediaType.VIDEO) "mp4" else "mp3"}"
+        val newItem = DownloadItem(
+            id = id,
+            url = url,
+            fileName = fileName,
+            mediaType = mediaType,
+            status = DownloadStatus.QUEUED
+        )
+        
+        _activeDownloads.value = _activeDownloads.value + newItem
+        _downloadUrl.value = ""
+
+        val workRequest = OneTimeWorkRequestBuilder<DownloadWorker>()
+            .setInputData(
+                workDataOf(
+                    DownloadWorker.KEY_URL to url,
+                    DownloadWorker.KEY_FILE_NAME to fileName,
+                    DownloadWorker.KEY_MEDIA_TYPE to mediaType.name
+                )
+            )
+            .addTag(id)
+            .build()
+
+        workManager.enqueue(workRequest)
+
+        // Observe progress
+        viewModelScope.launch {
+            workManager.getWorkInfoByIdFlow(workRequest.id).collect { workInfo ->
+                if (workInfo != null) {
+                    val progressValue = workInfo.progress.getInt(DownloadWorker.PROGRESS, 0)
+                    val status = when (workInfo.state) {
+                        WorkInfo.State.RUNNING -> DownloadStatus.DOWNLOADING
+                        WorkInfo.State.SUCCEEDED -> DownloadStatus.COMPLETED
+                        WorkInfo.State.FAILED -> DownloadStatus.FAILED
+                        else -> DownloadStatus.QUEUED
+                    }
+
+                    _activeDownloads.value = _activeDownloads.value.map { item ->
+                        if (item.id == id) {
+                            item.copy(
+                                progress = progressValue / 100f,
+                                status = status
+                            )
+                        } else item
+                    }
+                    
+                    // If completed, maybe refresh library or something
+                }
+            }
+        }
+    }
+
+    fun removeDownload(id: String) {
+        _activeDownloads.value = _activeDownloads.value.filterNot { it.id == id }
     }
 
     override fun onCleared() {

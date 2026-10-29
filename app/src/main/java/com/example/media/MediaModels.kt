@@ -47,3 +47,20 @@ enum class SleepTimerMode {
     END_OF_TRACK
 }
 
+enum class DownloadStatus {
+    QUEUED,
+    DOWNLOADING,
+    COMPLETED,
+    FAILED
+}
+
+data class DownloadItem(
+    val id: String,
+    val url: String,
+    val fileName: String,
+    val progress: Float = 0f,
+    val status: DownloadStatus = DownloadStatus.QUEUED,
+    val mediaType: MediaType = MediaType.VIDEO,
+    val timestamp: Long = System.currentTimeMillis()
+)
+

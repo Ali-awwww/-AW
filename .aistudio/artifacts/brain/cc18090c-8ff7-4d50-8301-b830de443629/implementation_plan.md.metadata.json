@@ -1,6 +1,6 @@
 {
-  "summary":  "خطة تطوير ميزة الحفظ المستقل لنقاط توقف قوائم التشغيل (Independent Playlist Resume Points) واستيراد مجلدات وملفات متعددة من الهاتف مع زر استئناف بارز يعرض المقطع والدقيقة بدقة لكل قائمة دون التأثير على القوائم الأخرى.",
-  "updatedAt":  "2026-10-29T19:40:22.617902261Z",
+  "summary":  "Implementation plan for the Downloader feature in \"مشغل الAW\". \nIncludes adding a dedicated tab, background downloading via WorkManager, support for multiple platforms, and saving to the public Downloads folder, all while maintaining the geometric sharp-edged design.",
+  "updatedAt":  "2026-10-29T21:14:48.730455935Z",
   "requestFeedback":  true,
   "userFacing":  true
 }

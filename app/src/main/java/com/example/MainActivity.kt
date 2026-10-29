@@ -63,6 +63,9 @@ import com.example.ui.theme.NeonPink
 import com.example.ui.theme.NeonViolet
 import com.example.ui.theme.TextPrimary
 import com.example.ui.theme.TextSecondary
+import com.example.ui.screens.DownloaderScreen
+import androidx.compose.material.icons.filled.CloudDownload
+import androidx.compose.material.icons.filled.Download
 
 class MainActivity : ComponentActivity() {
 
@@ -209,6 +212,33 @@ fun MainAppContent(viewModel: MediaPlayerViewModel) {
                             ),
                             modifier = Modifier.testTag("nav_playlists_tab")
                         )
+
+                        // Downloader Tab
+                        NavigationBarItem(
+                            selected = currentTab == AppTab.DOWNLOADER,
+                            onClick = { viewModel.setTab(AppTab.DOWNLOADER) },
+                            icon = {
+                                Icon(
+                                    imageVector = Icons.Default.CloudDownload,
+                                    contentDescription = "Downloader"
+                                )
+                            },
+                            label = {
+                                Text(
+                                    text = "تحميل",
+                                    fontWeight = if (currentTab == AppTab.DOWNLOADER) FontWeight.Bold else FontWeight.Normal,
+                                    fontSize = 12.sp
+                                )
+                            },
+                            colors = NavigationBarItemDefaults.colors(
+                                selectedIconColor = Color.Black,
+                                selectedTextColor = Color.White,
+                                indicatorColor = Color.White,
+                                unselectedIconColor = TextSecondary,
+                                unselectedTextColor = TextSecondary
+                            ),
+                            modifier = Modifier.testTag("nav_downloader_tab")
+                        )
                     }
                 }
             }
@@ -222,6 +252,7 @@ fun MainAppContent(viewModel: MediaPlayerViewModel) {
                     AppTab.VIDEOS -> VideosScreen(viewModel = viewModel)
                     AppTab.MUSIC -> MusicScreen(viewModel = viewModel)
                     AppTab.PLAYLISTS -> PlaylistsScreen(viewModel = viewModel)
+                    AppTab.DOWNLOADER -> DownloaderScreen(viewModel = viewModel)
                 }
             }
         }
