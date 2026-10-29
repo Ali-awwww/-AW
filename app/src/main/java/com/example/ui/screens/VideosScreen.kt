@@ -133,9 +133,9 @@ fun VideosScreen(
                         Box(
                             modifier = Modifier
                                 .size(36.dp)
-                                .clip(RoundedCornerShape(0.dp))
+                                .clip(com.example.ui.components.HexagonShape())
                                 .background(NeonCyan.copy(alpha = 0.15f))
-                                .border(1.dp, NeonCyan.copy(alpha = 0.5f), RoundedCornerShape(0.dp)),
+                                .border(1.dp, NeonCyan.copy(alpha = 0.5f), com.example.ui.components.HexagonShape()),
                             contentAlignment = Alignment.Center
                         ) {
                             Icon(
@@ -262,13 +262,14 @@ fun VideoCardItem(
     onToggleFavorite: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    Card(
+    androidx.compose.material3.Surface(
         onClick = onClick,
-        colors = CardDefaults.cardColors(containerColor = DarkSurfaceElevated),
+        color = DarkSurfaceElevated,
         shape = RoundedCornerShape(0.dp),
-        border = CardDefaults.outlinedCardBorder().copy(brush = androidx.compose.ui.graphics.SolidColor(DarkSurfaceBorder)),
+        border = androidx.compose.foundation.BorderStroke(1.dp, DarkSurfaceBorder),
         modifier = modifier
             .fillMaxWidth()
+            .com.example.ui.components.isometricShadow(NeonCyan.copy(alpha = 0.1f))
             .testTag("video_item_${video.id}")
     ) {
         Column {

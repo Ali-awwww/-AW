@@ -78,9 +78,9 @@ fun DownloaderScreen(
             Box(
                 modifier = Modifier
                     .size(40.dp)
-                    .clip(RoundedCornerShape(0.dp))
+                    .clip(com.example.ui.components.HexagonShape())
                     .background(NeonCyan.copy(alpha = 0.15f))
-                    .border(1.dp, NeonCyan.copy(alpha = 0.5f), RoundedCornerShape(0.dp)),
+                    .border(1.dp, NeonCyan.copy(alpha = 0.5f), com.example.ui.components.HexagonShape()),
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
@@ -112,6 +112,9 @@ fun DownloaderScreen(
                 else -> null
             }
         }
+
+        val isExtracting by viewModel.isExtracting.collectAsState()
+        val metadata by viewModel.extractedMetadata.collectAsState()
 
         OutlinedTextField(
             value = downloadUrl,
@@ -146,42 +149,122 @@ fun DownloaderScreen(
                 .testTag("download_url_input")
         )
 
-        detectedPlatform?.let {
-            Text(
-                text = "المنصة المكتشفة: $it",
-                color = NeonCyan,
-                fontSize = 12.sp,
-                modifier = Modifier.padding(top = 4.dp, start = 4.dp)
-            )
+        // Extraction Status / Metadata
+        AnimatedVisibility(visible = isExtracting) {
+            Row(
+                modifier = Modifier.padding(top = 8.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                androidx.compose.material3.CircularProgressIndicator(
+                    modifier = Modifier.size(16.dp),
+                    strokeWidth = 2.dp,
+                    color = NeonCyan
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Text("جاري استخراج معلومات الفيديو...", color = TextSecondary, fontSize = 12.sp)
+            }
         }
 
-        Spacer(modifier = Modifier.height(16.dp))
-
-        // Download Actions
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
-            Button(
-                onClick = { viewModel.startDownload(downloadUrl, MediaType.VIDEO) },
-                modifier = Modifier.weight(1f),
+        metadata?.let { info ->
+            Spacer(modifier = Modifier.height(16.dp))
+            Card(
+                colors = CardDefaults.cardColors(containerColor = DarkSurfaceElevated),
                 shape = RoundedCornerShape(0.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = NeonCyan, contentColor = Color.Black)
+                border = androidx.compose.foundation.BorderStroke(1.dp, NeonCyan.copy(alpha = 0.3f)),
+                modifier = Modifier.fillMaxWidth()
             ) {
-                Icon(Icons.Default.VideoLibrary, contentDescription = null, modifier = Modifier.size(18.dp))
-                Spacer(modifier = Modifier.width(8.dp))
-                Text("تحميل فيديو", fontWeight = FontWeight.Bold)
+                Column(modifier = Modifier.padding(12.dp)) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        AsyncImage(
+                            model = info.thumbnailUrl,
+                            contentDescription = null,
+                            modifier = Modifier
+                                .size(60.dp)
+                                .clip(RoundedCornerShape(0.dp)),
+                            contentScale = androidx.compose.layout.ContentScale.Crop
+                        )
+                        Spacer(modifier = Modifier.width(12.dp))
+                        Column {
+                            Text(info.title, color = TextPrimary, fontSize = 14.sp, fontWeight = FontWeight.Bold, maxLines = 1)
+                            Text(info.platform, color = NeonCyan, fontSize = 11.sp)
+                        }
+                    }
+                    
+                    Spacer(modifier = Modifier.height(12.dp))
+                    Text("اختر الجودة (Select Quality):", color = TextSecondary, fontSize = 12.sp)
+                    Spacer(modifier = Modifier.height(8.dp))
+                    
+                    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                        info.qualities.forEach { quality ->
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clickable { 
+                                        val type = if (quality.label.contains("Audio")) MediaType.AUDIO else MediaType.VIDEO
+                                        viewModel.startDownload(downloadUrl, type, quality.label) 
+                                    }
+                                    .background(DarkBackground)
+                                    .border(1.dp, DarkSurfaceBorder, RoundedCornerShape(0.dp))
+                                    .padding(8.dp),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Icon(
+                                        imageVector = if (quality.label.contains("Audio")) Icons.Default.MusicNote else Icons.Default.VideoLibrary,
+                                        contentDescription = null,
+                                        tint = if (quality.label.contains("Audio")) NeonPink else NeonCyan,
+                                        modifier = Modifier.size(16.dp)
+                                    )
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                    Text(quality.label, color = TextPrimary, fontSize = 13.sp)
+                                }
+                                Text(quality.sizeLabel, color = TextMuted, fontSize = 11.sp)
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        if (metadata == null && !isExtracting) {
+            detectedPlatform?.let {
+                Text(
+                    text = "المنصة المكتشفة: $it",
+                    color = NeonCyan,
+                    fontSize = 12.sp,
+                    modifier = Modifier.padding(top = 4.dp, start = 4.dp)
+                )
             }
 
-            Button(
-                onClick = { viewModel.startDownload(downloadUrl, MediaType.AUDIO) },
-                modifier = Modifier.weight(1f),
-                shape = RoundedCornerShape(0.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = NeonPink, contentColor = Color.White)
+            Spacer(modifier = Modifier.height(16.dp))
+
+            // Download Actions (Direct)
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                Icon(Icons.Default.MusicNote, contentDescription = null, modifier = Modifier.size(18.dp))
-                Spacer(modifier = Modifier.width(8.dp))
-                Text("تحميل موسيقى", fontWeight = FontWeight.Bold)
+                Button(
+                    onClick = { viewModel.startDownload(downloadUrl, MediaType.VIDEO) },
+                    modifier = Modifier.weight(1f),
+                    shape = RoundedCornerShape(0.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = NeonCyan, contentColor = Color.Black)
+                ) {
+                    Icon(Icons.Default.VideoLibrary, contentDescription = null, modifier = Modifier.size(18.dp))
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text("تحميل فيديو", fontWeight = FontWeight.Bold)
+                }
+
+                Button(
+                    onClick = { viewModel.startDownload(downloadUrl, MediaType.AUDIO) },
+                    modifier = Modifier.weight(1f),
+                    shape = RoundedCornerShape(0.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = NeonPink, contentColor = Color.White)
+                ) {
+                    Icon(Icons.Default.MusicNote, contentDescription = null, modifier = Modifier.size(18.dp))
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text("تحميل موسيقى", fontWeight = FontWeight.Bold)
+                }
             }
         }
 

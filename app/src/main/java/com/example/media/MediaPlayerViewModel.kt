@@ -42,10 +42,10 @@ class MediaPlayerViewModel(application: Application) : AndroidViewModel(applicat
     private val _currentTab = MutableStateFlow(AppTab.VIDEOS)
     val currentTab: StateFlow<AppTab> = _currentTab.asStateFlow()
 
-    private val _allVideos = MutableStateFlow<List<MediaItemData>>(SampleMediaData.sampleVideos)
+    private val _allVideos = MutableStateFlow<List<MediaItemData>>(emptyList())
     val allVideos: StateFlow<List<MediaItemData>> = _allVideos.asStateFlow()
 
-    private val _allAudios = MutableStateFlow<List<MediaItemData>>(SampleMediaData.sampleAudio)
+    private val _allAudios = MutableStateFlow<List<MediaItemData>>(emptyList())
     val allAudios: StateFlow<List<MediaItemData>> = _allAudios.asStateFlow()
 
     private val _playlists = MutableStateFlow<List<Playlist>>(emptyList())
@@ -81,6 +81,12 @@ class MediaPlayerViewModel(application: Application) : AndroidViewModel(applicat
 
     private val _downloadUrl = MutableStateFlow("")
     val downloadUrl: StateFlow<String> = _downloadUrl.asStateFlow()
+ 
+    private val _isExtracting = MutableStateFlow(false)
+    val isExtracting: StateFlow<Boolean> = _isExtracting.asStateFlow()
+ 
+    private val _extractedMetadata = MutableStateFlow<ExtractedMetadata?>(null)
+    val extractedMetadata: StateFlow<ExtractedMetadata?> = _extractedMetadata.asStateFlow()
 
     private var sleepTimerJob: Job? = null
 
@@ -632,13 +638,50 @@ class MediaPlayerViewModel(application: Application) : AndroidViewModel(applicat
 
     fun setDownloadUrl(url: String) {
         _downloadUrl.value = url
+        if (url.isBlank()) {
+            _extractedMetadata.value = null
+        } else if (url.startsWith("http")) {
+            simulateExtraction(url)
+        }
     }
 
-    fun startDownload(url: String, mediaType: MediaType) {
+    private fun simulateExtraction(url: String) {
+        viewModelScope.launch {
+            _isExtracting.value = true
+            delay(1500) // Simulate network delay
+            
+            val platform = when {
+                url.contains("youtube.com") || url.contains("youtu.be") -> "YouTube"
+                url.contains("instagram.com") -> "Instagram"
+                url.contains("tiktok.com") -> "TikTok"
+                url.contains("facebook.com") -> "Facebook"
+                else -> "Direct Link"
+            }
+
+            _extractedMetadata.value = ExtractedMetadata(
+                title = "فيديو من $platform - ${System.currentTimeMillis() % 10000}",
+                thumbnailUrl = "https://images.unsplash.com/photo-1611162617213-7d7a39e9b1d7?w=400&auto=format&fit=crop&q=60",
+                platform = platform,
+                qualities = listOf(
+                    VideoQuality("1080p (FHD)", "25 MB"),
+                    VideoQuality("720p (HD)", "15 MB"),
+                    VideoQuality("480p (SD)", "8 MB"),
+                    VideoQuality("Audio Only (MP3)", "4 MB")
+                )
+            )
+            _isExtracting.value = false
+        }
+    }
+
+    fun startDownload(url: String, mediaType: MediaType, quality: String? = null) {
         if (url.isBlank()) return
         
+        val metadata = _extractedMetadata.value
+        val baseName = metadata?.title ?: "download_${System.currentTimeMillis()}"
+        val extension = if (mediaType == MediaType.VIDEO) "mp4" else "mp3"
+        val fileName = "$baseName.$extension"
+        
         val id = UUID.randomUUID().toString()
-        val fileName = "download_${System.currentTimeMillis()}.${if (mediaType == MediaType.VIDEO) "mp4" else "mp3"}"
         val newItem = DownloadItem(
             id = id,
             url = url,
@@ -649,6 +692,7 @@ class MediaPlayerViewModel(application: Application) : AndroidViewModel(applicat
         
         _activeDownloads.value = _activeDownloads.value + newItem
         _downloadUrl.value = ""
+        _extractedMetadata.value = null
 
         val workRequest = OneTimeWorkRequestBuilder<DownloadWorker>()
             .setInputData(

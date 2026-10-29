@@ -149,7 +149,7 @@ fun BottomMiniPlayer(
                 Box(
                     modifier = Modifier
                         .size(44.dp)
-                        .clip(RoundedCornerShape(0.dp))
+                        .clip(com.example.ui.components.HexagonShape())
                         .background(Color.Black),
                     contentAlignment = Alignment.Center
                 ) {
@@ -438,7 +438,7 @@ fun FullScreenAudioPlayer(
                             onClick = { showEqDialog = true },
                             modifier = Modifier
                                 .size(40.dp)
-                                .clip(RoundedCornerShape(0.dp))
+                                .clip(com.example.ui.components.HexagonShape())
                                 .background(DarkSurfaceBorder)
                                 .testTag("open_equalizer_button")
                         ) {

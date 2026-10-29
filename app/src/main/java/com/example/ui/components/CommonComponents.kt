@@ -72,7 +72,63 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.graphics.drawscope.drawIntoCanvas
+import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.Outline
+import androidx.compose.ui.graphics.Shape
+import androidx.compose.ui.unit.Density
+import androidx.compose.ui.unit.LayoutDirection
+import kotlin.math.cos
+import kotlin.math.sin
+import kotlin.math.PI
 import java.util.Locale
+
+class HexagonShape : Shape {
+    override fun createOutline(size: androidx.compose.ui.geometry.Size, layoutDirection: LayoutDirection, density: Density): Outline {
+        val path = Path().apply {
+            val radius = minOf(size.width, size.height) / 2f
+            val centerX = size.width / 2f
+            val centerY = size.height / 2f
+            for (i in 0..5) {
+                val angle = (i * 60f) * (PI / 180f).toFloat()
+                val x = centerX + radius * cos(angle)
+                val y = centerY + radius * sin(angle)
+                if (i == 0) moveTo(x, y) else lineTo(x, y)
+            }
+            close()
+        }
+        return Outline.Generic(path)
+    }
+}
+
+class TriangleShape : Shape {
+    override fun createOutline(size: androidx.compose.ui.geometry.Size, layoutDirection: LayoutDirection, density: Density): Outline {
+        val path = Path().apply {
+            moveTo(size.width / 2f, 0f)
+            lineTo(size.width, size.height)
+            lineTo(0f, size.height)
+            close()
+        }
+        return Outline.Generic(path)
+    }
+}
+
+fun Modifier.isometricShadow(
+    color: Color = NeonCyan.copy(alpha = 0.5f),
+    offset: Offset = Offset(4f, 4f)
+) = this.drawBehind {
+    drawIntoCanvas { canvas ->
+        val paint = androidx.compose.ui.graphics.Paint()
+        paint.color = color
+        canvas.drawRect(
+            androidx.compose.ui.geometry.Rect(
+                offset.x, offset.y, size.width + offset.x, size.height + offset.y
+            ),
+            paint
+        )
+    }
+}
 
 object MediaTimeFormatter {
     fun formatMs(ms: Long): String {
@@ -133,32 +189,42 @@ fun GeometricBackground(
     content: @Composable () -> Unit
 ) {
     Box(modifier = modifier.fillMaxWidth().background(com.example.ui.theme.DarkBackground)) {
-        Canvas(modifier = Modifier.fillMaxWidth().height(800.dp)) {
+        Canvas(modifier = Modifier.fillMaxSize()) {
             val gridSpacing = 40.dp.toPx()
-            val lineColor = Color.White.copy(alpha = 0.03f)
+            val lineColor = Color.White.copy(alpha = 0.04f)
+            val accentLineColor = NeonCyan.copy(alpha = 0.08f)
             
-            // Vertical grid lines
-            var x = 0f
-            while (x < size.width) {
+            // Primary Grid
+            for (x in 0..(size.width / gridSpacing).toInt()) {
+                val xPos = x * gridSpacing
                 drawLine(
-                    color = lineColor,
-                    start = Offset(x, 0f),
-                    end = Offset(x, size.height),
-                    strokeWidth = 1.dp.toPx()
+                    color = if (x % 5 == 0) accentLineColor else lineColor,
+                    start = Offset(xPos, 0f),
+                    end = Offset(xPos, size.height),
+                    strokeWidth = (if (x % 5 == 0) 1.5.dp else 1.dp).toPx()
                 )
-                x += gridSpacing
             }
             
-            // Horizontal grid lines
-            var y = 0f
-            while (y < size.height) {
+            for (y in 0..(size.height / gridSpacing).toInt()) {
+                val yPos = y * gridSpacing
                 drawLine(
-                    color = lineColor,
-                    start = Offset(0f, y),
-                    end = Offset(size.width, y),
+                    color = if (y % 5 == 0) accentLineColor else lineColor,
+                    start = Offset(0f, yPos),
+                    end = Offset(size.width, yPos),
+                    strokeWidth = (if (y % 5 == 0) 1.5.dp else 1.dp).toPx()
+                )
+            }
+
+            // Diagonal "blueprint" lines
+            val diagSpacing = gridSpacing * 5
+            for (i in -10..20) {
+                val offset = i * diagSpacing
+                drawLine(
+                    color = Color.White.copy(alpha = 0.02f),
+                    start = Offset(offset, 0f),
+                    end = Offset(offset + size.height, size.height),
                     strokeWidth = 1.dp.toPx()
                 )
-                y += gridSpacing
             }
         }
         content()

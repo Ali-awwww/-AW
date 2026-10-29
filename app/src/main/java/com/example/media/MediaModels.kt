@@ -64,3 +64,15 @@ data class DownloadItem(
     val timestamp: Long = System.currentTimeMillis()
 )
 
+data class VideoQuality(
+    val label: String,
+    val sizeLabel: String
+)
+
+data class ExtractedMetadata(
+    val title: String,
+    val thumbnailUrl: String,
+    val platform: String,
+    val qualities: List<VideoQuality>
+)
+
