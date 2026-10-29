@@ -1,11 +1,58 @@
-<div align="center">
+# VibePlayer 🎵🎬
+**مشغل وسائط متطور للفيديوهات والموسيقى لنظام أندرويد**
+*Built with Kotlin, Jetpack Compose, and Android Media3 ExoPlayer*
 
-<img width="1200" height="475" alt="GHBanner" src="https://github.com/user-attachments/assets/0aa67016-6eaf-458a-adb2-6e31a0763ed6" />
+---
 
-  <h1>Built with AI Studio</h2>
+## 🌟 المميزات الرئيسية (Features)
 
-  <p>The fastest path from prompt to production with Gemini.</p>
+- **مشغل فيديوهات متطور (Advanced Video Player):**
+  - دعم صيغ MP4 و HLS (m3u8) وملفات الفيديو المحلية على الهاتف.
+  - عناصر تحكم نيون ذكية مع إخفاء تلقائي، تقديم/تأخير 10 ثوانٍ، وتغيير السرعة (0.5x - 2.0x).
+  - دعم التدوير للشاشة الكاملة وتغيير نسبة العرض (Fit / Zoom / Fill).
 
-  <a href="https://aistudio.google.com/apps">Start building</a>
+- **مشغل صوتيات في الخلفية (Background Music Player):**
+  - تشغيل مستمر في الخلفية عبر `MediaSessionService` مع إشعارات التحكم في شريط النظام وشاشة القفل.
+  - مشغل مصغر دائم (Mini-Player) مع مؤثر موجات صوتية حي وشريط تقدم.
+  - مشغل كامل الشاشة مع أسطوانة ألبوم فينيل دوارة، مؤقت نوم تلقائي (Sleep Timer)، وضع التكرار والعشوائي.
 
-</div>
+- **نقاط استئناف مستقلة لكل قائمة تشغيل (Independent Playlist Checkpoints):**
+  - حفظ تلقائي لمكان التوقف (المقطع والدقيقة بدقة) لكل قائمة بشكل منفصل.
+  - تشغيل قائمة أخرى لا يؤثر على نقطة التوقف المحفوظة للقوائم السابقة.
+  - زر "استئناف" بارز على بطاقة كل قائمة يتيح العودة لنفس اللحظة بضغطة واحدة.
+
+- **استيراد من الهاتف (Device Media Import):**
+  - استيراد مجلد كامل بنقرة واحدة لإنشاء قائمة تشغيل مخصصة فوراً.
+  - تحديد عدة ملفات دفعة واحدة.
+  - إمكانية تشغيل روابط البث المباشر المخصصة من الإنترنت.
+
+---
+
+## 📦 بناء ملف الـ APK عبر GitHub Actions (CI/CD)
+
+تم تجهيز ملف الأتمتة `.github/workflows/build-apk.yml`. بمجرد رفع الكود إلى GitHub:
+
+1. **البناء التلقائي:** سيبدأ سير العمل (GitHub Actions Workflow) تلقائياً عند الدفع (`git push`).
+2. **تحميل الـ APK:**
+   - توجه إلى تبويب **Actions** في مستودع GitHub الخاص بك.
+   - اختر آخر عملية بناء مكتملة (Build & Package APK).
+   - ستجد ملف الـ APK جاهزاً للتحميل تحت قسم **Artifacts** باسم:  
+     `VibePlayer-Debug-APK`
+3. **التشغيل اليدوي:** يمكنك أيضاً تشغيل البناء يدوياً في أي وقت عبر النقر على **Run workflow** داخل تبويب Actions.
+
+---
+
+## 🛠 البناء المحلي (Local Build)
+
+إذا أردت بناء المشروع محلياً عبر سطر الأوامر:
+
+```bash
+# منح صلاحية التنفيذ لـ gradlew
+chmod +x gradlew
+
+# بناء تطبيق الـ APK (Debug)
+./gradlew assembleDebug
+
+# ملف الـ APK الناتج سيتواجد في:
+# app/build/outputs/apk/debug/app-debug.apk
+```
