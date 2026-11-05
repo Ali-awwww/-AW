@@ -91,7 +91,11 @@ class MediaPlayerViewModel(application: Application) : AndroidViewModel(applicat
     private var sleepTimerJob: Job? = null
 
     init {
-        PlaybackManager.init(application)
+        try {
+            PlaybackManager.init(application)
+        } catch (e: Exception) {
+            android.util.Log.e("VibePlayer", "Playback engine initialization failed", e)
+        }
         PlaybackManager.onTrackEndedListener = {
             if (_sleepTimerMode.value == SleepTimerMode.END_OF_TRACK) {
                 cancelSleepTimer()
