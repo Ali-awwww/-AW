@@ -1,19 +1,13 @@
 package com.example.ui.screens
 
-import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.tween
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.slideInVertically
-import androidx.compose.animation.slideOutVertically
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -28,14 +22,17 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.QueueMusic
 import androidx.compose.material.icons.filled.Bedtime
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.FavoriteBorder
 import androidx.compose.material.icons.filled.GraphicEq
 import androidx.compose.material.icons.filled.KeyboardArrowDown
+import androidx.compose.material.icons.filled.MusicNote
 import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Repeat
@@ -44,12 +41,15 @@ import androidx.compose.material.icons.filled.Shuffle
 import androidx.compose.material.icons.filled.SkipNext
 import androidx.compose.material.icons.filled.SkipPrevious
 import androidx.compose.material.icons.filled.Speed
-import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.ElevatedCard
+import androidx.compose.material3.FilledIconButton
+import androidx.compose.material3.FilledTonalIconButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Slider
@@ -71,6 +71,7 @@ import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
@@ -82,22 +83,16 @@ import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
-import com.example.media.MediaItemData
 import com.example.media.MediaPlayerViewModel
 import com.example.media.PlaybackManager
 import com.example.media.RepeatState
+import com.example.media.SleepTimerMode
+import com.example.ui.components.EqualizerDialog
 import com.example.ui.components.MediaTimeFormatter
+import com.example.ui.components.QueueSheetDialog
 import com.example.ui.components.SleepTimerDialog
 import com.example.ui.components.WaveformVisualizer
-import com.example.ui.theme.DarkBackground
-import com.example.ui.theme.DarkSurfaceBorder
-import com.example.ui.theme.DarkSurfaceElevated
-import com.example.ui.theme.NeonCyan
-import com.example.ui.theme.NeonPink
-import com.example.ui.theme.NeonViolet
-import com.example.ui.theme.TextMuted
-import com.example.ui.theme.TextPrimary
-import com.example.ui.theme.TextSecondary
+import com.example.ui.theme.MonoTextStyle
 
 @Composable
 fun BottomMiniPlayer(
@@ -108,120 +103,125 @@ fun BottomMiniPlayer(
     val isPlaying by PlaybackManager.isPlaying.collectAsState()
     val currentPosMs by PlaybackManager.currentPositionMs.collectAsState()
     val durationMs by PlaybackManager.durationMs.collectAsState()
+    val sleepTimerMode by viewModel.sleepTimerMode.collectAsState()
+    var showQueueDialog by remember { mutableStateOf(false) }
 
     if (currentItem == null) return
+
+    if (showQueueDialog) {
+        QueueSheetDialog(
+            viewModel = viewModel,
+            onDismiss = { showQueueDialog = false }
+        )
+    }
 
     val progress = if (durationMs > 0) {
         (currentPosMs.toFloat() / durationMs.toFloat()).coerceIn(0f, 1f)
     } else 0f
 
-    Card(
+    ElevatedCard(
         onClick = { viewModel.expandAudioPlayer(true) },
-        colors = CardDefaults.cardColors(containerColor = DarkSurfaceElevated),
-        shape = RoundedCornerShape(0.dp),
-        border = CardDefaults.outlinedCardBorder().copy(
-            brush = Brush.horizontalGradient(listOf(NeonCyan.copy(alpha = 0.5f), NeonViolet.copy(alpha = 0.5f)))
+        colors = CardDefaults.elevatedCardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceContainerHigh
         ),
+        elevation = CardDefaults.elevatedCardElevation(defaultElevation = 8.dp),
+        shape = RoundedCornerShape(22.dp),
         modifier = modifier
             .fillMaxWidth()
             .padding(horizontal = 12.dp, vertical = 6.dp)
-            .shadow(12.dp, RoundedCornerShape(0.dp), spotColor = NeonCyan.copy(alpha = 0.2f))
             .testTag("mini_player_dock")
     ) {
         Column {
-            // Linear Progress Line at Top Edge
-            LinearProgressIndicator(
-                progress = { progress },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(2.5.dp),
-                color = NeonCyan,
-                trackColor = Color.Transparent
-            )
-
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 12.dp, vertical = 8.dp),
+                    .padding(horizontal = 12.dp, vertical = 10.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                // Thumbnail with Waveform
-                Box(
-                    modifier = Modifier
-                        .size(44.dp)
-                        .clip(com.example.ui.components.HexagonShape())
-                        .background(Color.Black),
-                    contentAlignment = Alignment.Center
+                Surface(
+                    shape = CircleShape,
+                    color = MaterialTheme.colorScheme.surfaceContainerHighest,
+                    modifier = Modifier.size(44.dp)
                 ) {
-                    AsyncImage(
-                        model = ImageRequest.Builder(LocalContext.current)
-                            .data(currentItem?.artworkUri)
-                            .crossfade(true)
-                            .build(),
-                        contentDescription = null,
-                        contentScale = ContentScale.Crop,
-                        modifier = Modifier.fillMaxSize()
-                    )
+                    Box(contentAlignment = Alignment.Center) {
+                        if (!currentItem?.artworkUri.isNullOrBlank()) {
+                            AsyncImage(
+                                model = ImageRequest.Builder(LocalContext.current)
+                                    .data(currentItem?.artworkUri)
+                                    .crossfade(true)
+                                    .build(),
+                                contentDescription = null,
+                                contentScale = ContentScale.Crop,
+                                modifier = Modifier.fillMaxSize()
+                            )
+                        } else {
+                            Icon(
+                                imageVector = Icons.Default.MusicNote,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.size(22.dp)
+                            )
+                        }
 
-                    if (isPlaying) {
-                        Box(
-                            modifier = Modifier
-                                .fillMaxSize()
-                                .background(Color.Black.copy(alpha = 0.35f)),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            WaveformVisualizer(isPlaying = true, color = NeonCyan)
+                        if (isPlaying) {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .background(Color.Black.copy(alpha = 0.4f)),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                WaveformVisualizer(isPlaying = true, color = MaterialTheme.colorScheme.primary)
+                            }
                         }
                     }
                 }
 
                 Spacer(modifier = Modifier.width(12.dp))
 
-                // Info
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
                         text = currentItem?.title ?: "",
-                        color = TextPrimary,
-                        fontWeight = FontWeight.SemiBold,
-                        fontSize = 14.sp,
+                        color = MaterialTheme.colorScheme.onSurface,
+                        style = MaterialTheme.typography.titleSmall,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis
                     )
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Text(
                             text = currentItem?.artistOrDesc ?: "",
-                            color = TextSecondary,
-                            fontSize = 11.sp,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            style = MaterialTheme.typography.bodySmall,
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis,
                             modifier = Modifier.weight(1f, fill = false)
                         )
-                        val sleepTimerMode by viewModel.sleepTimerMode.collectAsState()
-                        if (sleepTimerMode != com.example.media.SleepTimerMode.OFF) {
+                        if (sleepTimerMode != SleepTimerMode.OFF) {
                             Spacer(modifier = Modifier.width(6.dp))
                             Icon(
                                 imageVector = Icons.Default.Bedtime,
                                 contentDescription = "Sleep timer active",
-                                tint = NeonViolet,
+                                tint = MaterialTheme.colorScheme.secondary,
                                 modifier = Modifier.size(13.dp)
                             )
                         }
                     }
                 }
 
-                // Controls
-                IconButton(
+                Spacer(modifier = Modifier.width(8.dp))
+
+                FilledIconButton(
                     onClick = { PlaybackManager.togglePlayPause() },
+                    colors = IconButtonDefaults.filledIconButtonColors(
+                        containerColor = MaterialTheme.colorScheme.primaryContainer,
+                        contentColor = MaterialTheme.colorScheme.onPrimaryContainer
+                    ),
                     modifier = Modifier
-                        .size(38.dp)
-                        .clip(RoundedCornerShape(0.dp))
-                        .background(NeonCyan.copy(alpha = 0.15f))
+                        .size(40.dp)
                         .testTag("mini_player_play_pause")
                 ) {
                     Icon(
                         imageVector = if (isPlaying) Icons.Default.Pause else Icons.Default.PlayArrow,
                         contentDescription = "Play/Pause",
-                        tint = NeonCyan,
                         modifier = Modifier.size(22.dp)
                     )
                 }
@@ -230,16 +230,40 @@ fun BottomMiniPlayer(
 
                 IconButton(
                     onClick = { PlaybackManager.next() },
-                    modifier = Modifier.size(36.dp)
+                    modifier = Modifier.size(38.dp)
                 ) {
                     Icon(
                         imageVector = Icons.Default.SkipNext,
                         contentDescription = "Next",
-                        tint = TextSecondary,
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.size(22.dp)
                     )
                 }
+
+                IconButton(
+                    onClick = { showQueueDialog = true },
+                    modifier = Modifier.size(38.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Filled.QueueMusic,
+                        contentDescription = "طابور التشغيل",
+                        tint = MaterialTheme.colorScheme.secondary,
+                        modifier = Modifier.size(20.dp)
+                    )
+                }
             }
+
+            LinearProgressIndicator(
+                progress = { progress },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 14.dp)
+                    .padding(bottom = 4.dp)
+                    .height(3.dp),
+                color = MaterialTheme.colorScheme.primary,
+                trackColor = MaterialTheme.colorScheme.surfaceContainerHighest,
+                strokeCap = StrokeCap.Round
+            )
         }
     }
 }
@@ -259,12 +283,13 @@ fun FullScreenAudioPlayer(
     val sleepSeconds by viewModel.sleepTimerSeconds.collectAsState()
     val sleepTimerMode by viewModel.sleepTimerMode.collectAsState()
     val isFadeOut by viewModel.isFadeOutEnabled.collectAsState()
+    val abLoop by PlaybackManager.abLoopState.collectAsState()
 
     var showSleepDialog by remember { mutableStateOf(false) }
     var showEqDialog by remember { mutableStateOf(false) }
+    var showQueueDialog by remember { mutableStateOf(false) }
     var speedMenuOpen by remember { mutableStateOf(false) }
 
-    // Slider state
     var isDraggingSlider by remember { mutableStateOf(false) }
     var dragValue by remember { mutableFloatStateOf(0f) }
 
@@ -284,11 +309,23 @@ fun FullScreenAudioPlayer(
     }
 
     if (showEqDialog) {
-        com.example.ui.components.EqualizerDialog(
+        EqualizerDialog(
             viewModel = viewModel,
             onDismiss = { showEqDialog = false }
         )
     }
+
+    if (showQueueDialog) {
+        QueueSheetDialog(
+            viewModel = viewModel,
+            onDismiss = { showQueueDialog = false }
+        )
+    }
+
+    val primaryColor = MaterialTheme.colorScheme.primary
+    val secondaryColor = MaterialTheme.colorScheme.secondary
+    val tertiaryColor = MaterialTheme.colorScheme.tertiary
+    val surfaceBg = MaterialTheme.colorScheme.background
 
     Dialog(
         onDismissRequest = onDismiss,
@@ -300,18 +337,21 @@ fun FullScreenAudioPlayer(
                 .background(
                     Brush.verticalGradient(
                         colors = listOf(
-                            DarkSurfaceElevated,
-                            DarkBackground,
-                            DarkBackground
+                            MaterialTheme.colorScheme.surfaceContainerHigh,
+                            MaterialTheme.colorScheme.surfaceContainerLow,
+                            surfaceBg
                         )
                     )
                 )
                 .statusBarsPadding()
                 .navigationBarsPadding()
-                .padding(horizontal = 24.dp, vertical = 16.dp)
+                .padding(horizontal = 24.dp, vertical = 16.dp),
+            contentAlignment = Alignment.Center
         ) {
             Column(
-                modifier = Modifier.fillMaxSize(),
+                modifier = Modifier
+                    .fillMaxSize()
+                    .widthIn(max = 560.dp),
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.SpaceBetween
             ) {
@@ -321,91 +361,87 @@ fun FullScreenAudioPlayer(
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    IconButton(
+                    FilledTonalIconButton(
                         onClick = onDismiss,
+                        colors = IconButtonDefaults.filledTonalIconButtonColors(
+                            containerColor = MaterialTheme.colorScheme.surfaceContainerHighest
+                        ),
                         modifier = Modifier
                             .size(44.dp)
-                            .clip(RoundedCornerShape(0.dp))
-                            .background(DarkSurfaceBorder)
                             .testTag("audio_player_collapse")
                     ) {
                         Icon(
                             imageVector = Icons.Default.KeyboardArrowDown,
                             contentDescription = "Collapse",
-                            tint = TextPrimary,
-                            modifier = Modifier.size(28.dp)
+                            modifier = Modifier.size(26.dp)
                         )
                     }
 
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
                         Text(
-                            text = "مشغل الصوت (NOW PLAYING)",
-                            color = NeonCyan,
-                            fontSize = 11.sp,
-                            fontWeight = FontWeight.Bold,
-                            letterSpacing = 1.sp
+                            text = "قيد التشغيل الآن",
+                            color = primaryColor,
+                            style = MaterialTheme.typography.labelMedium,
+                            fontWeight = FontWeight.Bold
                         )
                         Text(
                             text = currentItem?.category ?: "مشغل الوسائط",
-                            color = TextSecondary,
-                            fontSize = 13.sp
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            style = MaterialTheme.typography.bodySmall
                         )
                     }
 
-                    Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                        // Sleep Timer Button with Active State
-                        val isTimerActive = sleepTimerMode != com.example.media.SleepTimerMode.OFF
+                    Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
+                        val isTimerActive = sleepTimerMode != SleepTimerMode.OFF
                         Surface(
                             onClick = { showSleepDialog = true },
-                            shape = RoundedCornerShape(0.dp),
-                            color = if (isTimerActive) NeonViolet.copy(alpha = 0.25f) else DarkSurfaceBorder,
-                            border = if (isTimerActive) androidx.compose.foundation.BorderStroke(1.dp, NeonViolet) else null,
+                            shape = RoundedCornerShape(14.dp),
+                            color = if (isTimerActive) MaterialTheme.colorScheme.secondaryContainer else MaterialTheme.colorScheme.surfaceContainerHighest,
+                            border = if (isTimerActive) BorderStroke(1.dp, secondaryColor) else null,
                             modifier = Modifier
-                                .height(38.dp)
+                                .height(40.dp)
                                 .testTag("open_sleep_timer_button")
                         ) {
                             Row(
-                                modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
+                                modifier = Modifier.padding(horizontal = 10.dp),
                                 verticalAlignment = Alignment.CenterVertically,
                                 horizontalArrangement = Arrangement.spacedBy(4.dp)
                             ) {
                                 Icon(
                                     imageVector = Icons.Default.Bedtime,
                                     contentDescription = "Sleep timer",
-                                    tint = if (isTimerActive) NeonViolet else TextSecondary,
+                                    tint = if (isTimerActive) secondaryColor else MaterialTheme.colorScheme.onSurfaceVariant,
                                     modifier = Modifier.size(18.dp)
                                 )
-                                if (sleepTimerMode == com.example.media.SleepTimerMode.DURATION) {
+                                if (sleepTimerMode == SleepTimerMode.DURATION) {
                                     Text(
                                         text = MediaTimeFormatter.formatMs(sleepSeconds * 1000L),
-                                        color = NeonViolet,
-                                        fontSize = 11.sp,
-                                        fontWeight = FontWeight.Bold
+                                        color = secondaryColor,
+                                        style = MonoTextStyle.copy(fontSize = 11.sp, fontWeight = FontWeight.Bold)
                                     )
-                                } else if (sleepTimerMode == com.example.media.SleepTimerMode.END_OF_TRACK) {
+                                } else if (sleepTimerMode == SleepTimerMode.END_OF_TRACK) {
                                     Text(
-                                        text = "نهاية المقطع",
-                                        color = NeonViolet,
-                                        fontSize = 10.sp,
+                                        text = "نهاية",
+                                        color = secondaryColor,
+                                        style = MaterialTheme.typography.labelSmall,
                                         fontWeight = FontWeight.Bold
                                     )
                                 }
                             }
                         }
 
-                        // Speed Button
                         Box {
-                            IconButton(
+                            FilledTonalIconButton(
                                 onClick = { speedMenuOpen = true },
-                                modifier = Modifier
-                                    .size(40.dp)
-                                    .clip(RoundedCornerShape(0.dp))
-                                    .background(DarkSurfaceBorder)
+                                colors = IconButtonDefaults.filledTonalIconButtonColors(
+                                    containerColor = MaterialTheme.colorScheme.surfaceContainerHighest
+                                ),
+                                modifier = Modifier.size(40.dp)
                             ) {
                                 Icon(
                                     imageVector = Icons.Default.Speed,
                                     contentDescription = "Speed",
-                                    tint = NeonCyan,
+                                    tint = primaryColor,
                                     modifier = Modifier.size(20.dp)
                                 )
                             }
@@ -413,14 +449,16 @@ fun FullScreenAudioPlayer(
                             DropdownMenu(
                                 expanded = speedMenuOpen,
                                 onDismissRequest = { speedMenuOpen = false },
-                                modifier = Modifier.background(DarkSurfaceElevated)
+                                containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+                                shape = RoundedCornerShape(16.dp)
                             ) {
                                 listOf(0.75f, 1.0f, 1.25f, 1.5f, 2.0f).forEach { s ->
                                     DropdownMenuItem(
                                         text = {
                                             Text(
                                                 text = "${s}x",
-                                                color = if (speed == s) NeonCyan else TextPrimary,
+                                                color = if (speed == s) primaryColor else MaterialTheme.colorScheme.onSurface,
+                                                style = MonoTextStyle,
                                                 fontWeight = if (speed == s) FontWeight.Bold else FontWeight.Normal
                                             )
                                         },
@@ -433,28 +471,45 @@ fun FullScreenAudioPlayer(
                             }
                         }
 
-                        // Equalizer Button
-                        IconButton(
-                            onClick = { showEqDialog = true },
+                        FilledTonalIconButton(
+                            onClick = { showQueueDialog = true },
+                            colors = IconButtonDefaults.filledTonalIconButtonColors(
+                                containerColor = MaterialTheme.colorScheme.surfaceContainerHighest
+                            ),
                             modifier = Modifier
                                 .size(40.dp)
-                                .clip(com.example.ui.components.HexagonShape())
-                                .background(DarkSurfaceBorder)
+                                .testTag("open_queue_button")
+                        ) {
+                            Icon(
+                                imageVector = Icons.AutoMirrored.Filled.QueueMusic,
+                                contentDescription = "طابور التشغيل",
+                                tint = secondaryColor,
+                                modifier = Modifier.size(20.dp)
+                            )
+                        }
+
+                        FilledTonalIconButton(
+                            onClick = { showEqDialog = true },
+                            colors = IconButtonDefaults.filledTonalIconButtonColors(
+                                containerColor = MaterialTheme.colorScheme.primaryContainer
+                            ),
+                            modifier = Modifier
+                                .size(40.dp)
                                 .testTag("open_equalizer_button")
                         ) {
                             Icon(
                                 imageVector = Icons.Default.GraphicEq,
                                 contentDescription = "Equalizer",
-                                tint = NeonCyan,
+                                tint = MaterialTheme.colorScheme.onPrimaryContainer,
                                 modifier = Modifier.size(20.dp)
                             )
                         }
                     }
                 }
 
-                Spacer(modifier = Modifier.height(16.dp))
+                Spacer(modifier = Modifier.height(12.dp))
 
-                // Glowing Album Artwork with rotation
+                // Glowing Circular Vinyl Artwork
                 val rotationAngle = remember { Animatable(0f) }
                 LaunchedEffect(isPlaying) {
                     if (isPlaying) {
@@ -472,44 +527,52 @@ fun FullScreenAudioPlayer(
 
                 Box(
                     modifier = Modifier
-                        .fillMaxWidth(0.85f)
+                        .fillMaxWidth(0.76f)
                         .aspectRatio(1f)
                         .shadow(
-                            elevation = 28.dp,
-                            shape = RoundedCornerShape(0.dp),
-                            spotColor = NeonViolet.copy(alpha = 0.5f),
-                            ambientColor = NeonCyan.copy(alpha = 0.3f)
+                            elevation = 24.dp,
+                            shape = CircleShape,
+                            spotColor = secondaryColor.copy(alpha = 0.45f),
+                            ambientColor = primaryColor.copy(alpha = 0.25f)
                         )
-                        .clip(RoundedCornerShape(0.dp))
-                        .border(3.dp, Brush.sweepGradient(listOf(NeonCyan, NeonViolet, NeonPink, NeonCyan)), RoundedCornerShape(0.dp))
-                        .background(Color.Black),
+                        .clip(CircleShape)
+                        .border(3.dp, Brush.sweepGradient(listOf(primaryColor, secondaryColor, tertiaryColor, primaryColor)), CircleShape)
+                        .background(MaterialTheme.colorScheme.surfaceContainerLowest),
                     contentAlignment = Alignment.Center
                 ) {
-                    AsyncImage(
-                        model = ImageRequest.Builder(LocalContext.current)
-                            .data(currentItem?.artworkUri)
-                            .crossfade(true)
-                            .build(),
-                        contentDescription = currentItem?.title,
-                        contentScale = ContentScale.Crop,
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .rotate(rotationAngle.value)
-                    )
+                    if (!currentItem?.artworkUri.isNullOrBlank()) {
+                        AsyncImage(
+                            model = ImageRequest.Builder(LocalContext.current)
+                                .data(currentItem?.artworkUri)
+                                .crossfade(true)
+                                .build(),
+                            contentDescription = currentItem?.title,
+                            contentScale = ContentScale.Crop,
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .rotate(rotationAngle.value)
+                        )
+                    } else {
+                        Icon(
+                            imageVector = Icons.Default.MusicNote,
+                            contentDescription = null,
+                            tint = secondaryColor.copy(alpha = 0.7f),
+                            modifier = Modifier.size(84.dp)
+                        )
+                    }
 
-                    // Vinyl Center Hole
                     Box(
                         modifier = Modifier
-                            .size(36.dp)
-                            .clip(RoundedCornerShape(0.dp))
-                            .background(DarkBackground)
-                            .border(2.dp, NeonCyan, RoundedCornerShape(0.dp))
+                            .size(40.dp)
+                            .clip(CircleShape)
+                            .background(surfaceBg)
+                            .border(2.dp, primaryColor, CircleShape)
                     )
                 }
 
-                Spacer(modifier = Modifier.height(20.dp))
+                Spacer(modifier = Modifier.height(16.dp))
 
-                // Title, Artist & Favorite
+                // Title & Favorite
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,
@@ -517,18 +580,17 @@ fun FullScreenAudioPlayer(
                 ) {
                     Column(modifier = Modifier.weight(1f)) {
                         Text(
-                            text = currentItem?.title ?: "No track playing",
-                            color = TextPrimary,
-                            fontSize = 20.sp,
-                            fontWeight = FontWeight.Bold,
+                            text = currentItem?.title ?: "لا يوجد مقطع قيد التشغيل",
+                            color = MaterialTheme.colorScheme.onSurface,
+                            style = MaterialTheme.typography.headlineSmall,
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis
                         )
-                        Spacer(modifier = Modifier.height(4.dp))
+                        Spacer(modifier = Modifier.height(2.dp))
                         Text(
                             text = currentItem?.artistOrDesc ?: "",
-                            color = TextSecondary,
-                            fontSize = 14.sp,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            style = MaterialTheme.typography.bodyMedium,
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis
                         )
@@ -537,19 +599,19 @@ fun FullScreenAudioPlayer(
                     currentItem?.let { item ->
                         IconButton(
                             onClick = { viewModel.toggleFavorite(item) },
-                            modifier = Modifier.size(44.dp)
+                            modifier = Modifier.size(48.dp)
                         ) {
                             Icon(
                                 imageVector = if (item.isFavorite) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
                                 contentDescription = "Favorite",
-                                tint = if (item.isFavorite) NeonPink else TextMuted,
+                                tint = if (item.isFavorite) tertiaryColor else MaterialTheme.colorScheme.onSurfaceVariant,
                                 modifier = Modifier.size(26.dp)
                             )
                         }
                     }
                 }
 
-                // Progress Bar & Timestamps
+                // Slider & A-B Repeat
                 Column(modifier = Modifier.fillMaxWidth()) {
                     val sliderProgress = if (isDraggingSlider) {
                         dragValue
@@ -569,9 +631,9 @@ fun FullScreenAudioPlayer(
                             isDraggingSlider = false
                         },
                         colors = SliderDefaults.colors(
-                            thumbColor = NeonCyan,
-                            activeTrackColor = NeonCyan,
-                            inactiveTrackColor = DarkSurfaceBorder
+                            thumbColor = primaryColor,
+                            activeTrackColor = primaryColor,
+                            inactiveTrackColor = MaterialTheme.colorScheme.surfaceContainerHighest
                         ),
                         modifier = Modifier
                             .fillMaxWidth()
@@ -580,24 +642,70 @@ fun FullScreenAudioPlayer(
 
                     Row(
                         modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
                         val displayPos = if (isDraggingSlider) (dragValue * durationMs).toLong() else currentPosMs
                         Text(
                             text = MediaTimeFormatter.formatMs(displayPos),
-                            color = NeonCyan,
-                            fontSize = 12.sp,
-                            fontWeight = FontWeight.Medium
+                            color = primaryColor,
+                            style = MonoTextStyle.copy(fontSize = 12.sp, fontWeight = FontWeight.Bold)
                         )
+
+                        Row(
+                            horizontalArrangement = Arrangement.spacedBy(6.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Surface(
+                                onClick = { PlaybackManager.togglePointA() },
+                                color = if (abLoop.pointAMs != null) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceContainerHighest,
+                                shape = RoundedCornerShape(50)
+                            ) {
+                                Text(
+                                    text = if (abLoop.pointAMs != null) "A: ${MediaTimeFormatter.formatMs(abLoop.pointAMs!!)}" else "نقطة A",
+                                    color = if (abLoop.pointAMs != null) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurfaceVariant,
+                                    style = MonoTextStyle.copy(fontSize = 10.sp, fontWeight = FontWeight.Bold),
+                                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp)
+                                )
+                            }
+                            Surface(
+                                onClick = { PlaybackManager.togglePointB() },
+                                color = if (abLoop.isActive) MaterialTheme.colorScheme.secondaryContainer else MaterialTheme.colorScheme.surfaceContainerHighest,
+                                shape = RoundedCornerShape(50)
+                            ) {
+                                Text(
+                                    text = if (abLoop.isActive && abLoop.pointBMs != null) "B: ${MediaTimeFormatter.formatMs(abLoop.pointBMs!!)}" else "نقطة B",
+                                    color = if (abLoop.isActive) MaterialTheme.colorScheme.onSecondaryContainer else MaterialTheme.colorScheme.onSurfaceVariant,
+                                    style = MonoTextStyle.copy(fontSize = 10.sp, fontWeight = FontWeight.Bold),
+                                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp)
+                                )
+                            }
+                            if (abLoop.pointAMs != null || abLoop.isActive) {
+                                Surface(
+                                    onClick = { PlaybackManager.clearABLoop() },
+                                    color = MaterialTheme.colorScheme.tertiaryContainer,
+                                    shape = RoundedCornerShape(50)
+                                ) {
+                                    Text(
+                                        text = "مسح A-B",
+                                        color = MaterialTheme.colorScheme.onTertiaryContainer,
+                                        style = MaterialTheme.typography.labelSmall,
+                                        fontWeight = FontWeight.Bold,
+                                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 5.dp)
+                                    )
+                                }
+                            }
+                        }
+
                         Text(
                             text = MediaTimeFormatter.formatMs(durationMs),
-                            color = TextSecondary,
-                            fontSize = 12.sp
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            style = MonoTextStyle.copy(fontSize = 12.sp)
                         )
                     }
                 }
 
-                // Playback Controls Row
+                // Controls Row
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -605,82 +713,76 @@ fun FullScreenAudioPlayer(
                     horizontalArrangement = Arrangement.SpaceEvenly,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    // Shuffle
                     IconButton(
                         onClick = { PlaybackManager.toggleShuffle() },
-                        modifier = Modifier.size(44.dp)
+                        modifier = Modifier.size(48.dp)
                     ) {
                         Icon(
                             imageVector = Icons.Default.Shuffle,
                             contentDescription = "Shuffle",
-                            tint = if (isShuffle) NeonCyan else TextMuted,
+                            tint = if (isShuffle) primaryColor else MaterialTheme.colorScheme.onSurfaceVariant,
                             modifier = Modifier.size(22.dp)
                         )
                     }
 
-                    // Previous
-                    IconButton(
+                    FilledTonalIconButton(
                         onClick = { PlaybackManager.previous() },
+                        colors = IconButtonDefaults.filledTonalIconButtonColors(
+                            containerColor = MaterialTheme.colorScheme.surfaceContainerHighest
+                        ),
                         modifier = Modifier
-                            .size(52.dp)
-                            .clip(RoundedCornerShape(0.dp))
-                            .background(DarkSurfaceBorder)
+                            .size(54.dp)
                             .testTag("audio_previous_button")
                     ) {
                         Icon(
                             imageVector = Icons.Default.SkipPrevious,
                             contentDescription = "Previous",
-                            tint = TextPrimary,
                             modifier = Modifier.size(28.dp)
                         )
                     }
 
-                    // Large Play/Pause
-                    IconButton(
+                    FilledIconButton(
                         onClick = { PlaybackManager.togglePlayPause() },
+                        colors = IconButtonDefaults.filledIconButtonColors(
+                            containerColor = primaryColor,
+                            contentColor = MaterialTheme.colorScheme.onPrimary
+                        ),
                         modifier = Modifier
-                            .size(68.dp)
-                            .clip(RoundedCornerShape(0.dp))
-                            .background(
-                                Brush.linearGradient(listOf(NeonCyan, NeonViolet))
-                            )
-                            .shadow(16.dp, RoundedCornerShape(0.dp), spotColor = NeonCyan)
+                            .size(72.dp)
+                            .shadow(16.dp, CircleShape, spotColor = primaryColor)
                             .testTag("audio_play_pause_button")
                     ) {
                         Icon(
                             imageVector = if (isPlaying) Icons.Default.Pause else Icons.Default.PlayArrow,
                             contentDescription = if (isPlaying) "Pause" else "Play",
-                            tint = Color.Black,
                             modifier = Modifier.size(38.dp)
                         )
                     }
 
-                    // Next
-                    IconButton(
+                    FilledTonalIconButton(
                         onClick = { PlaybackManager.next() },
+                        colors = IconButtonDefaults.filledTonalIconButtonColors(
+                            containerColor = MaterialTheme.colorScheme.surfaceContainerHighest
+                        ),
                         modifier = Modifier
-                            .size(52.dp)
-                            .clip(RoundedCornerShape(0.dp))
-                            .background(DarkSurfaceBorder)
+                            .size(54.dp)
                             .testTag("audio_next_button")
                     ) {
                         Icon(
                             imageVector = Icons.Default.SkipNext,
                             contentDescription = "Next",
-                            tint = TextPrimary,
                             modifier = Modifier.size(28.dp)
                         )
                     }
 
-                    // Repeat Mode
                     IconButton(
                         onClick = { PlaybackManager.cycleRepeatMode() },
-                        modifier = Modifier.size(44.dp)
+                        modifier = Modifier.size(48.dp)
                     ) {
                         Icon(
                             imageVector = if (repeatMode == RepeatState.ONE) Icons.Default.RepeatOne else Icons.Default.Repeat,
                             contentDescription = "Repeat",
-                            tint = if (repeatMode != RepeatState.OFF) NeonViolet else TextMuted,
+                            tint = if (repeatMode != RepeatState.OFF) secondaryColor else MaterialTheme.colorScheme.onSurfaceVariant,
                             modifier = Modifier.size(22.dp)
                         )
                     }

@@ -1,6 +1,6 @@
 package com.example.ui.components
 
-import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -16,39 +16,40 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.GraphicEq
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Tune
+import androidx.compose.material3.BottomSheetDefaults
 import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Slider
 import androidx.compose.material3.SliderDefaults
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
+import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableFloatStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -57,200 +58,196 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.ui.window.Dialog
-import androidx.compose.ui.window.DialogProperties
 import com.example.media.DefaultEqualizerData
 import com.example.media.EqualizerBand
 import com.example.media.MediaPlayerViewModel
-import com.example.ui.theme.DarkBackground
-import com.example.ui.theme.DarkSurfaceBorder
-import com.example.ui.theme.DarkSurfaceElevated
-import com.example.ui.theme.NeonCyan
-import com.example.ui.theme.NeonPink
-import com.example.ui.theme.NeonViolet
-import com.example.ui.theme.TextMuted
-import com.example.ui.theme.TextPrimary
-import com.example.ui.theme.TextSecondary
+import com.example.ui.theme.MonoTextStyle
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun EqualizerDialog(
     viewModel: MediaPlayerViewModel,
     onDismiss: () -> Unit
 ) {
     val eqState by viewModel.equalizerState.collectAsState()
+    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
 
-    Dialog(
+    ModalBottomSheet(
         onDismissRequest = onDismiss,
-        properties = DialogProperties(usePlatformDefaultWidth = false)
+        sheetState = sheetState,
+        containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+        shape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp),
+        dragHandle = { BottomSheetDefaults.DragHandle() }
     ) {
-        Surface(
+        Column(
             modifier = Modifier
-                .fillMaxWidth(0.95f)
-                .clip(RoundedCornerShape(0.dp))
-                .border(1.dp, Brush.horizontalGradient(listOf(NeonCyan.copy(alpha = 0.5f), NeonViolet.copy(alpha = 0.5f))), RoundedCornerShape(0.dp)),
-            color = DarkSurfaceElevated,
-            tonalElevation = 12.dp
+                .fillMaxWidth()
+                .verticalScroll(rememberScrollState())
+                .padding(horizontal = 20.dp)
+                .padding(bottom = 24.dp)
+                .navigationBarsPadding(),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            Column(
+            // Header & Master Switch
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Box(
+                        modifier = Modifier
+                            .size(42.dp)
+                            .clip(CircleShape)
+                            .background(MaterialTheme.colorScheme.primaryContainer),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.GraphicEq,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.onPrimaryContainer,
+                            modifier = Modifier.size(22.dp)
+                        )
+                    }
+                    Spacer(modifier = Modifier.width(12.dp))
+                    Column {
+                        Text(
+                            text = "معادل الصوت",
+                            style = MaterialTheme.typography.titleLarge,
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+                        Text(
+                            text = if (eqState.isEnabled) "مفعل ومضبوط" else "معطل (صوت مباشر)",
+                            color = if (eqState.isEnabled) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+                            style = MaterialTheme.typography.labelMedium
+                        )
+                    }
+                }
+
+                Switch(
+                    checked = eqState.isEnabled,
+                    onCheckedChange = { viewModel.setEqualizerEnabled(it) },
+                    colors = SwitchDefaults.colors(
+                        checkedThumbColor = MaterialTheme.colorScheme.onPrimary,
+                        checkedTrackColor = MaterialTheme.colorScheme.primary
+                    ),
+                    modifier = Modifier.testTag("equalizer_master_switch")
+                )
+            }
+
+            // Smooth Frequency Spectrum Curve Card
+            Card(
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLowest),
+                shape = MaterialTheme.shapes.large,
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(20.dp),
-                verticalArrangement = Arrangement.spacedBy(16.dp)
+                    .height(92.dp)
             ) {
-                // Header & Master Switch
+                EqualizerCurveVisualizer(
+                    bands = eqState.bands,
+                    isEnabled = eqState.isEnabled,
+                    primaryColor = MaterialTheme.colorScheme.primary,
+                    secondaryColor = MaterialTheme.colorScheme.secondary,
+                    mutedColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.fillMaxSize()
+                )
+            }
+
+            // Preset Selector Chips
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Box(
-                            modifier = Modifier
-                                .size(38.dp)
-                                .clip(RoundedCornerShape(0.dp))
-                                .background(NeonCyan.copy(alpha = 0.15f))
-                                .border(1.dp, NeonCyan.copy(alpha = 0.4f), RoundedCornerShape(0.dp)),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.GraphicEq,
-                                contentDescription = null,
-                                tint = NeonCyan,
-                                modifier = Modifier.size(22.dp)
-                            )
-                        }
-                        Spacer(modifier = Modifier.width(10.dp))
-                        Column {
-                            Text(
-                                text = "معادل الصوت (Equalizer)",
-                                color = TextPrimary,
-                                fontSize = 18.sp,
-                                fontWeight = FontWeight.Bold
-                            )
-                            Text(
-                                text = if (eqState.isEnabled) "مفعل ومضبوط" else "معطل (صوت مباشر)",
-                                color = if (eqState.isEnabled) NeonCyan else TextMuted,
-                                fontSize = 11.sp,
-                                fontWeight = FontWeight.Medium
-                            )
-                        }
-                    }
-
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Switch(
-                            checked = eqState.isEnabled,
-                            onCheckedChange = { viewModel.setEqualizerEnabled(it) },
-                            colors = SwitchDefaults.colors(
-                                checkedThumbColor = Color.Black,
-                                checkedTrackColor = NeonCyan,
-                                uncheckedTrackColor = DarkSurfaceBorder
-                            ),
-                            modifier = Modifier.testTag("equalizer_master_switch")
-                        )
-                        Spacer(modifier = Modifier.width(4.dp))
-                        IconButton(onClick = onDismiss) {
-                            Icon(Icons.Default.Close, contentDescription = "Close", tint = TextSecondary)
-                        }
-                    }
-                }
-
-                // Interactive Frequency Spectrum Curve Canvas
-                Card(
-                    colors = CardDefaults.cardColors(containerColor = DarkBackground),
-                    shape = RoundedCornerShape(0.dp),
-                    border = CardDefaults.outlinedCardBorder().copy(brush = androidx.compose.ui.graphics.SolidColor(DarkSurfaceBorder)),
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(84.dp)
-                ) {
-                    EqualizerCurveVisualizer(
-                        bands = eqState.bands,
-                        isEnabled = eqState.isEnabled,
-                        modifier = Modifier.fillMaxSize()
+                    Text(
+                        text = "الأنماط الجاهزة",
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        style = MaterialTheme.typography.labelLarge
                     )
-                }
 
-                // Preset Selector Chips
-                Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
+                    Surface(
+                        color = MaterialTheme.colorScheme.surfaceContainer,
+                        shape = RoundedCornerShape(10.dp),
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(10.dp))
+                            .clickable { viewModel.selectEqualizerPreset("flat") }
                     ) {
-                        Text(
-                            text = "الأنماط الجاهزة (Presets):",
-                            color = TextSecondary,
-                            fontSize = 12.sp,
-                            fontWeight = FontWeight.Medium
-                        )
-
-                        // Quick Reset
                         Row(
-                            modifier = Modifier
-                                .clickable { viewModel.selectEqualizerPreset("flat") }
-                                .padding(4.dp),
+                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Icon(
                                 imageVector = Icons.Default.Refresh,
                                 contentDescription = null,
-                                tint = NeonCyan,
+                                tint = MaterialTheme.colorScheme.primary,
                                 modifier = Modifier.size(14.dp)
                             )
                             Spacer(modifier = Modifier.width(4.dp))
-                            Text("إعادة ضبط", color = NeonCyan, fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
-                        }
-                    }
-
-                    LazyRow(
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        items(DefaultEqualizerData.presets) { preset ->
-                            val isSelected = eqState.currentPresetId == preset.id
-                            FilterChip(
-                                selected = isSelected,
-                                onClick = { viewModel.selectEqualizerPreset(preset.id) },
-                                label = {
-                                    Text(
-                                        text = preset.name,
-                                        fontSize = 12.sp,
-                                        fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
-                                    )
-                                },
-                                colors = FilterChipDefaults.filterChipColors(
-                                    containerColor = DarkSurfaceBorder,
-                                    labelColor = TextSecondary,
-                                    selectedContainerColor = NeonCyan.copy(alpha = 0.2f),
-                                    selectedLabelColor = NeonCyan
-                                ),
-                                border = FilterChipDefaults.filterChipBorder(
-                                    borderColor = if (isSelected) NeonCyan else Color.Transparent,
-                                    selectedBorderColor = NeonCyan,
-                                    enabled = true,
-                                    selected = isSelected
-                                ),
-                                shape = RoundedCornerShape(0.dp),
-                                modifier = Modifier.testTag("preset_chip_${preset.id}")
+                            Text(
+                                text = "إعادة ضبط",
+                                color = MaterialTheme.colorScheme.primary,
+                                style = MaterialTheme.typography.labelSmall,
+                                fontWeight = FontWeight.Bold
                             )
                         }
                     }
                 }
 
-                // 5-Band Vertical Equalizer Faders
+                LazyRow(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    items(DefaultEqualizerData.presets) { preset ->
+                        val isSelected = eqState.currentPresetId == preset.id
+                        FilterChip(
+                            selected = isSelected,
+                            onClick = { viewModel.selectEqualizerPreset(preset.id) },
+                            label = {
+                                Text(
+                                    text = preset.name,
+                                    style = MaterialTheme.typography.labelMedium,
+                                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium
+                                )
+                            },
+                            colors = FilterChipDefaults.filterChipColors(
+                                containerColor = MaterialTheme.colorScheme.surfaceContainer,
+                                labelColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                                selectedContainerColor = MaterialTheme.colorScheme.primaryContainer,
+                                selectedLabelColor = MaterialTheme.colorScheme.onPrimaryContainer
+                            ),
+                            border = FilterChipDefaults.filterChipBorder(
+                                enabled = true,
+                                selected = isSelected,
+                                borderColor = MaterialTheme.colorScheme.outlineVariant,
+                                selectedBorderColor = MaterialTheme.colorScheme.primary
+                            ),
+                            shape = RoundedCornerShape(12.dp),
+                            modifier = Modifier.testTag("preset_chip_${preset.id}")
+                        )
+                    }
+                }
+            }
+
+            // 5-Band Vertical Equalizer Faders
+            Surface(
+                color = MaterialTheme.colorScheme.surfaceContainer,
+                shape = MaterialTheme.shapes.large,
+                modifier = Modifier.fillMaxWidth()
+            ) {
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(180.dp)
-                        .clip(RoundedCornerShape(0.dp))
-                        .background(DarkBackground.copy(alpha = 0.6f))
-                        .padding(horizontal = 8.dp, vertical = 10.dp),
+                        .height(186.dp)
+                        .padding(horizontal = 10.dp, vertical = 14.dp),
                     horizontalArrangement = Arrangement.SpaceEvenly,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
@@ -265,15 +262,15 @@ fun EqualizerDialog(
                         )
                     }
                 }
+            }
 
-                // Bass Boost Slider
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clip(RoundedCornerShape(0.dp))
-                        .background(DarkSurfaceBorder.copy(alpha = 0.45f))
-                        .padding(horizontal = 14.dp, vertical = 10.dp)
-                ) {
+            // Bass Boost Slider Card
+            Surface(
+                color = MaterialTheme.colorScheme.surfaceContainer,
+                shape = MaterialTheme.shapes.medium,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp)) {
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween,
@@ -283,21 +280,20 @@ fun EqualizerDialog(
                             Icon(
                                 imageVector = Icons.Default.Tune,
                                 contentDescription = null,
-                                tint = NeonViolet,
-                                modifier = Modifier.size(16.dp)
+                                tint = MaterialTheme.colorScheme.secondary,
+                                modifier = Modifier.size(18.dp)
                             )
-                            Spacer(modifier = Modifier.width(6.dp))
+                            Spacer(modifier = Modifier.width(8.dp))
                             Text(
-                                text = "تضخيم الباس (Bass Boost):",
-                                color = TextPrimary,
-                                fontSize = 13.sp,
-                                fontWeight = FontWeight.Medium
+                                text = "تضخيم الباس (Bass Boost)",
+                                color = MaterialTheme.colorScheme.onSurface,
+                                style = MaterialTheme.typography.titleSmall
                             )
                         }
                         Text(
                             text = "${eqState.bassBoostStrength}%",
-                            color = NeonViolet,
-                            fontSize = 13.sp,
+                            color = MaterialTheme.colorScheme.secondary,
+                            style = MaterialTheme.typography.labelLarge.merge(MonoTextStyle),
                             fontWeight = FontWeight.Bold
                         )
                     }
@@ -308,27 +304,65 @@ fun EqualizerDialog(
                         valueRange = 0f..100f,
                         enabled = eqState.isEnabled,
                         colors = SliderDefaults.colors(
-                            thumbColor = NeonViolet,
-                            activeTrackColor = NeonViolet,
-                            inactiveTrackColor = DarkSurfaceBorder
+                            thumbColor = MaterialTheme.colorScheme.secondary,
+                            activeTrackColor = MaterialTheme.colorScheme.secondary
                         ),
                         modifier = Modifier
                             .fillMaxWidth()
                             .testTag("bass_boost_slider")
                     )
                 }
+            }
 
-                // Done Button
-                Button(
-                    onClick = onDismiss,
-                    colors = ButtonDefaults.buttonColors(containerColor = NeonCyan, contentColor = Color.Black),
-                    shape = RoundedCornerShape(0.dp),
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .testTag("equalizer_done_button")
-                ) {
-                    Text("تم وحفظ الإعدادات", fontWeight = FontWeight.Bold, fontSize = 14.sp)
+            // Loudness Preamp Gain Slider Card
+            Surface(
+                color = MaterialTheme.colorScheme.surfaceContainer,
+                shape = MaterialTheme.shapes.medium,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp)) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = "مضخم الصوت الإضافي (Preamp Gain)",
+                            color = MaterialTheme.colorScheme.onSurface,
+                            style = MaterialTheme.typography.titleSmall
+                        )
+                        Text(
+                            text = "${eqState.preampGainPercent}%",
+                            color = MaterialTheme.colorScheme.tertiary,
+                            style = MaterialTheme.typography.labelLarge.merge(MonoTextStyle),
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+
+                    Slider(
+                        value = eqState.preampGainPercent.toFloat(),
+                        onValueChange = { viewModel.setPreampGain(it.toInt()) },
+                        valueRange = 0f..100f,
+                        enabled = eqState.isEnabled,
+                        colors = SliderDefaults.colors(
+                            thumbColor = MaterialTheme.colorScheme.tertiary,
+                            activeTrackColor = MaterialTheme.colorScheme.tertiary
+                        ),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .testTag("preamp_gain_slider")
+                    )
                 }
+            }
+
+            Button(
+                onClick = onDismiss,
+                shape = RoundedCornerShape(16.dp),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .testTag("equalizer_done_button")
+            ) {
+                Text("تم وحفظ الإعدادات", style = MaterialTheme.typography.labelLarge)
             }
         }
     }
@@ -338,16 +372,18 @@ fun EqualizerDialog(
 fun EqualizerCurveVisualizer(
     bands: List<EqualizerBand>,
     isEnabled: Boolean,
+    primaryColor: Color,
+    secondaryColor: Color,
+    mutedColor: Color,
     modifier: Modifier = Modifier
 ) {
-    Canvas(modifier = modifier.padding(horizontal = 16.dp, vertical = 8.dp)) {
+    Canvas(modifier = modifier.padding(horizontal = 18.dp, vertical = 12.dp)) {
         val width = size.width
         val height = size.height
         val midY = height / 2f
 
-        // Center 0dB dashed line
         drawLine(
-            color = Color.White.copy(alpha = 0.15f),
+            color = Color.White.copy(alpha = 0.14f),
             start = Offset(0f, midY),
             end = Offset(width, midY),
             strokeWidth = 1.dp.toPx()
@@ -355,10 +391,9 @@ fun EqualizerCurveVisualizer(
 
         if (bands.isEmpty()) return@Canvas
 
-        val stepX = width / (bands.size - 1)
+        val stepX = width / (bands.size - 1).coerceAtLeast(1)
         val points = bands.mapIndexed { index, band ->
             val x = index * stepX
-            // -10dB to +10dB maps from height to 0
             val normalized = if (isEnabled) {
                 ((band.levelDb.toFloat() + 10f) / 20f).coerceIn(0f, 1f)
             } else 0.5f
@@ -366,15 +401,16 @@ fun EqualizerCurveVisualizer(
             Offset(x, y)
         }
 
-        // Create geometric polygonal path
         val path = Path().apply {
             moveTo(points.first().x, points.first().y)
-            for (i in 1 until points.size) {
-                lineTo(points[i].x, points[i].y)
+            for (i in 0 until points.lastIndex) {
+                val p0 = points[i]
+                val p1 = points[i + 1]
+                val controlX = (p0.x + p1.x) / 2f
+                cubicTo(controlX, p0.y, controlX, p1.y, p1.x, p1.y)
             }
         }
 
-        // Fill area under curve
         val fillPath = Path().apply {
             addPath(path)
             lineTo(width, height)
@@ -384,8 +420,8 @@ fun EqualizerCurveVisualizer(
 
         val gradient = Brush.verticalGradient(
             colors = if (isEnabled) listOf(
-                NeonCyan.copy(alpha = 0.4f),
-                NeonViolet.copy(alpha = 0.2f),
+                primaryColor.copy(alpha = 0.35f),
+                secondaryColor.copy(alpha = 0.18f),
                 Color.Transparent
             ) else listOf(
                 Color.White.copy(alpha = 0.08f),
@@ -395,19 +431,17 @@ fun EqualizerCurveVisualizer(
 
         drawPath(fillPath, gradient)
 
-        // Draw curve line
         drawPath(
-            path,
-            color = if (isEnabled) NeonCyan else TextMuted,
-            style = Stroke(width = 2.5.dp.toPx())
+            path = path,
+            color = if (isEnabled) primaryColor else mutedColor,
+            style = Stroke(width = 2.8.dp.toPx(), cap = StrokeCap.Round)
         )
 
-        // Draw frequency points as squares
         points.forEach { pt ->
-            drawRect(
-                color = if (isEnabled) NeonViolet else TextMuted,
-                size = androidx.compose.ui.geometry.Size(6.dp.toPx(), 6.dp.toPx()),
-                topLeft = Offset(pt.x - 3.dp.toPx(), pt.y - 3.dp.toPx())
+            drawCircle(
+                color = if (isEnabled) secondaryColor else mutedColor,
+                radius = 4.dp.toPx(),
+                center = pt
             )
         }
     }
@@ -420,55 +454,49 @@ fun VerticalEqualizerFader(
     onLevelChange: (Int) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val freqLabel = when {
-        band.centerFreqHz >= 1000 -> "${band.centerFreqHz / 1000}k"
-        else -> "${band.centerFreqHz}"
-    }
+    val freqLabel = if (band.centerFreqHz >= 1000) "${band.centerFreqHz / 1000}k" else "${band.centerFreqHz}"
+    val primaryColor = MaterialTheme.colorScheme.primary
+    val secondaryColor = MaterialTheme.colorScheme.secondary
+    val disabledColor = MaterialTheme.colorScheme.outlineVariant
 
     Column(
         modifier = modifier.fillMaxHeight(),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.SpaceBetween
     ) {
-        // dB Text
         Text(
             text = "${if (band.levelDb > 0) "+" else ""}${band.levelDb}",
-            color = if (isEnabled) NeonCyan else TextMuted,
-            fontSize = 11.sp,
-            fontWeight = FontWeight.Bold
+            color = if (isEnabled) primaryColor else MaterialTheme.colorScheme.onSurfaceVariant,
+            style = MonoTextStyle.copy(fontSize = 11.sp, fontWeight = FontWeight.Bold)
         )
 
-        // Tactile Vertical Slider Track
         BoxWithConstraints(
             modifier = Modifier
-                .width(36.dp)
+                .width(38.dp)
                 .weight(1f)
-                .padding(vertical = 4.dp),
+                .padding(vertical = 6.dp),
             contentAlignment = Alignment.Center
         ) {
             val totalHeightPx = constraints.maxHeight.toFloat()
-            val availableH = maxHeight - 22.dp
+            val availableH = maxHeight - 24.dp
             val normalizedLevel = ((band.levelDb.toFloat() + 10f) / 20f).coerceIn(0f, 1f)
             val topOffset = availableH * (1f - normalizedLevel)
 
-            // Track Background
             Box(
                 modifier = Modifier
-                    .width(4.dp)
+                    .width(5.dp)
                     .fillMaxHeight()
-                    .clip(RoundedCornerShape(0.dp))
-                    .background(DarkSurfaceBorder)
+                    .clip(CircleShape)
+                    .background(MaterialTheme.colorScheme.surfaceContainerHighest)
             )
 
-            // Center zero tick
             Box(
                 modifier = Modifier
-                    .width(10.dp)
-                    .height(1.dp)
-                    .background(Color.White.copy(alpha = 0.3f))
+                    .width(12.dp)
+                    .height(1.5.dp)
+                    .background(Color.White.copy(alpha = 0.28f))
             )
 
-            // Draggable Touch Area & Handle
             Box(
                 modifier = Modifier
                     .fillMaxSize()
@@ -488,18 +516,18 @@ fun VerticalEqualizerFader(
                 Box(
                     modifier = Modifier
                         .padding(top = topOffset)
-                        .size(30.dp, 20.dp)
+                        .size(30.dp, 22.dp)
                         .align(Alignment.TopCenter)
-                        .shadow(6.dp, RoundedCornerShape(0.dp), spotColor = NeonCyan)
-                        .clip(RoundedCornerShape(0.dp))
+                        .shadow(4.dp, RoundedCornerShape(10.dp), spotColor = primaryColor)
+                        .clip(RoundedCornerShape(10.dp))
                         .background(
-                            if (isEnabled) Brush.verticalGradient(listOf(NeonCyan, NeonViolet))
-                            else Brush.verticalGradient(listOf(DarkSurfaceBorder, DarkSurfaceBorder))
+                            if (isEnabled) Brush.verticalGradient(listOf(primaryColor, secondaryColor))
+                            else Brush.verticalGradient(listOf(disabledColor, disabledColor))
                         )
                         .border(
                             1.dp,
-                            if (isEnabled) Color.White.copy(alpha = 0.4f) else Color.Transparent,
-                            RoundedCornerShape(0.dp)
+                            if (isEnabled) Color.White.copy(alpha = 0.35f) else Color.Transparent,
+                            RoundedCornerShape(10.dp)
                         ),
                     contentAlignment = Alignment.Center
                 ) {
@@ -507,18 +535,17 @@ fun VerticalEqualizerFader(
                         modifier = Modifier
                             .width(12.dp)
                             .height(2.dp)
-                            .background(Color.Black.copy(alpha = 0.6f))
+                            .clip(CircleShape)
+                            .background(Color.Black.copy(alpha = 0.55f))
                     )
                 }
             }
         }
 
-        // Frequency Label
         Text(
             text = freqLabel,
-            color = TextSecondary,
-            fontSize = 11.sp,
-            fontWeight = FontWeight.Medium
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            style = MonoTextStyle.copy(fontSize = 11.sp)
         )
     }
 }

@@ -4,6 +4,7 @@ import android.content.Context
 import android.content.SharedPreferences
 import android.media.audiofx.BassBoost
 import android.media.audiofx.Equalizer
+import android.media.audiofx.LoudnessEnhancer
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -14,6 +15,7 @@ class AudioEqualizerManager(private val context: Context) {
 
     private var androidEqualizer: Equalizer? = null
     private var androidBassBoost: BassBoost? = null
+    private var androidLoudnessEnhancer: LoudnessEnhancer? = null
     private var currentSessionId: Int = 0
 
     private val _equalizerState = MutableStateFlow(loadInitialState())
@@ -23,6 +25,7 @@ class AudioEqualizerManager(private val context: Context) {
         val isEnabled = prefs.getBoolean("eq_enabled", true)
         val presetId = prefs.getString("eq_preset", "flat") ?: "flat"
         val bassBoost = prefs.getInt("eq_bass_boost", 20)
+        val preampGain = prefs.getInt("eq_preamp_gain", 0)
 
         val bands = DefaultEqualizerData.defaultFrequencies.mapIndexed { index, freq ->
             val savedLevel = prefs.getInt("eq_band_$index", 0)
@@ -33,7 +36,8 @@ class AudioEqualizerManager(private val context: Context) {
             isEnabled = isEnabled,
             currentPresetId = presetId,
             bands = bands,
-            bassBoostStrength = bassBoost
+            bassBoostStrength = bassBoost,
+            preampGainPercent = preampGain
         )
     }
 
@@ -47,7 +51,7 @@ class AudioEqualizerManager(private val context: Context) {
             androidEqualizer = Equalizer(0, audioSessionId).apply {
                 enabled = _equalizerState.value.isEnabled
             }
-        } catch (e: Exception) {
+        } catch (_: Exception) {
             androidEqualizer = null
         }
 
@@ -55,8 +59,16 @@ class AudioEqualizerManager(private val context: Context) {
             androidBassBoost = BassBoost(0, audioSessionId).apply {
                 enabled = _equalizerState.value.isEnabled
             }
-        } catch (e: Exception) {
+        } catch (_: Exception) {
             androidBassBoost = null
+        }
+
+        try {
+            androidLoudnessEnhancer = LoudnessEnhancer(audioSessionId).apply {
+                enabled = _equalizerState.value.isEnabled && _equalizerState.value.preampGainPercent > 0
+            }
+        } catch (_: Exception) {
+            androidLoudnessEnhancer = null
         }
 
         applyCurrentStateToHardware()
@@ -67,6 +79,7 @@ class AudioEqualizerManager(private val context: Context) {
         try {
             androidEqualizer?.enabled = state.isEnabled
             androidBassBoost?.enabled = state.isEnabled
+            androidLoudnessEnhancer?.enabled = state.isEnabled && state.preampGainPercent > 0
 
             if (state.isEnabled) {
                 state.bands.forEach { band ->
@@ -76,8 +89,11 @@ class AudioEqualizerManager(private val context: Context) {
 
                 val bassStrength = (state.bassBoostStrength * 10).coerceIn(0, 1000).toShort()
                 androidBassBoost?.setStrength(bassStrength)
+
+                val targetGainMb = (state.preampGainPercent * 15).coerceIn(0, 1500)
+                androidLoudnessEnhancer?.setTargetGain(targetGainMb)
             }
-        } catch (e: Exception) {
+        } catch (_: Exception) {
             // Safe fallback for devices/emulators with partial audiofx support
         }
     }
@@ -121,8 +137,7 @@ class AudioEqualizerManager(private val context: Context) {
 
         try {
             androidEqualizer?.setBandLevel(bandIndex.toShort(), (clampedLevel * 100).toShort())
-        } catch (e: Exception) {
-            // Safe fallback
+        } catch (_: Exception) {
         }
     }
 
@@ -133,21 +148,37 @@ class AudioEqualizerManager(private val context: Context) {
 
         try {
             androidBassBoost?.setStrength((clamped * 10).toShort())
-        } catch (e: Exception) {
-            // Safe fallback
+        } catch (_: Exception) {
+        }
+    }
+
+    fun setPreampGain(percentage: Int) {
+        val clamped = percentage.coerceIn(0, 100)
+        _equalizerState.value = _equalizerState.value.copy(preampGainPercent = clamped)
+        prefs.edit().putInt("eq_preamp_gain", clamped).apply()
+
+        try {
+            androidLoudnessEnhancer?.enabled = _equalizerState.value.isEnabled && clamped > 0
+            androidLoudnessEnhancer?.setTargetGain((clamped * 15).coerceIn(0, 1500))
+        } catch (_: Exception) {
         }
     }
 
     private fun releaseEffects() {
         try {
             androidEqualizer?.release()
-        } catch (e: Exception) { }
+        } catch (_: Exception) { }
         androidEqualizer = null
 
         try {
             androidBassBoost?.release()
-        } catch (e: Exception) { }
+        } catch (_: Exception) { }
         androidBassBoost = null
+
+        try {
+            androidLoudnessEnhancer?.release()
+        } catch (_: Exception) { }
+        androidLoudnessEnhancer = null
     }
 
     fun release() {

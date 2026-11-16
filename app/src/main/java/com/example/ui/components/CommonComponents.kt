@@ -5,9 +5,9 @@ import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.tween
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -18,72 +18,77 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.QueueMusic
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Bedtime
-import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Link
 import androidx.compose.material.icons.filled.MusicNote
 import androidx.compose.material.icons.filled.Videocam
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.BottomSheetDefaults
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
+import androidx.compose.material3.Slider
+import androidx.compose.material3.SliderDefaults
 import androidx.compose.material3.Surface
+import androidx.compose.material3.Switch
+import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
-import com.example.media.MediaType
-import com.example.ui.theme.DarkSurfaceBorder
-import com.example.ui.theme.DarkSurfaceElevated
-import com.example.ui.theme.NeonCyan
-import com.example.ui.theme.NeonPink
-import com.example.ui.theme.NeonViolet
-import com.example.ui.theme.TextMuted
-import com.example.ui.theme.TextPrimary
-import com.example.ui.theme.TextSecondary
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.drawscope.Stroke
-import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.draw.shadow
-import androidx.compose.ui.draw.drawBehind
-import androidx.compose.ui.graphics.drawscope.drawIntoCanvas
-import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Outline
+import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.Shape
+import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.LayoutDirection
+import androidx.compose.ui.unit.dp
+import com.example.media.MediaType
+import com.example.media.SleepTimerMode
+import com.example.ui.theme.MonoTextStyle
+import java.util.Locale
+import kotlin.math.PI
 import kotlin.math.cos
 import kotlin.math.sin
-import kotlin.math.PI
-import java.util.Locale
 
 class HexagonShape : Shape {
     override fun createOutline(size: androidx.compose.ui.geometry.Size, layoutDirection: LayoutDirection, density: Density): Outline {
@@ -116,20 +121,9 @@ class TriangleShape : Shape {
 }
 
 fun Modifier.isometricShadow(
-    color: Color = NeonCyan.copy(alpha = 0.5f),
-    offset: Offset = Offset(4f, 4f)
-) = this.drawBehind {
-    drawIntoCanvas { canvas ->
-        val paint = androidx.compose.ui.graphics.Paint()
-        paint.color = color
-        canvas.drawRect(
-            androidx.compose.ui.geometry.Rect(
-                offset.x, offset.y, size.width + offset.x, size.height + offset.y
-            ),
-            paint
-        )
-    }
-}
+    color: Color = Color.Transparent,
+    offset: Offset = Offset.Zero
+) = this
 
 object MediaTimeFormatter {
     fun formatMs(ms: Long): String {
@@ -151,11 +145,11 @@ fun WaveformVisualizer(
     isPlaying: Boolean,
     modifier: Modifier = Modifier,
     barCount: Int = 4,
-    color: Color = NeonCyan
+    color: Color = MaterialTheme.colorScheme.primary
 ) {
     Row(
         modifier = modifier,
-        horizontalArrangement = Arrangement.spacedBy(2.dp),
+        horizontalArrangement = Arrangement.spacedBy(2.5.dp),
         verticalAlignment = Alignment.Bottom
     ) {
         repeat(barCount) { index ->
@@ -178,6 +172,7 @@ fun WaveformVisualizer(
                 modifier = Modifier
                     .width(3.dp)
                     .height((16 * animHeight.value).dp)
+                    .clip(CircleShape)
                     .background(color)
             )
         }
@@ -189,44 +184,41 @@ fun GeometricBackground(
     modifier: Modifier = Modifier,
     content: @Composable () -> Unit
 ) {
-    Box(modifier = modifier.fillMaxWidth().background(com.example.ui.theme.DarkBackground)) {
-        Canvas(modifier = Modifier.fillMaxSize()) {
-            val gridSpacing = 40.dp.toPx()
-            val lineColor = Color.White.copy(alpha = 0.04f)
-            val accentLineColor = NeonCyan.copy(alpha = 0.08f)
-            
-            // Primary Grid
-            for (x in 0..(size.width / gridSpacing).toInt()) {
-                val xPos = x * gridSpacing
-                drawLine(
-                    color = if (x % 5 == 0) accentLineColor else lineColor,
-                    start = Offset(xPos, 0f),
-                    end = Offset(xPos, size.height),
-                    strokeWidth = (if (x % 5 == 0) 1.5.dp else 1.dp).toPx()
-                )
-            }
-            
-            for (y in 0..(size.height / gridSpacing).toInt()) {
-                val yPos = y * gridSpacing
-                drawLine(
-                    color = if (y % 5 == 0) accentLineColor else lineColor,
-                    start = Offset(0f, yPos),
-                    end = Offset(size.width, yPos),
-                    strokeWidth = (if (y % 5 == 0) 1.5.dp else 1.dp).toPx()
-                )
-            }
+    val bgColor = MaterialTheme.colorScheme.background
+    val primaryGlow = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.24f)
+    val secondaryGlow = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.20f)
+    val tertiaryGlow = MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.12f)
 
-            // Diagonal "blueprint" lines
-            val diagSpacing = gridSpacing * 5
-            for (i in -10..20) {
-                val offset = i * diagSpacing
-                drawLine(
-                    color = Color.White.copy(alpha = 0.02f),
-                    start = Offset(offset, 0f),
-                    end = Offset(offset + size.height, size.height),
-                    strokeWidth = 1.dp.toPx()
-                )
-            }
+    Box(modifier = modifier.fillMaxWidth().background(bgColor)) {
+        Canvas(modifier = Modifier.fillMaxSize()) {
+            drawRect(color = bgColor)
+            drawCircle(
+                brush = Brush.radialGradient(
+                    colors = listOf(primaryGlow, Color.Transparent),
+                    center = Offset(size.width * 0.15f, size.height * 0.08f),
+                    radius = size.maxDimension * 0.65f
+                ),
+                center = Offset(size.width * 0.15f, size.height * 0.08f),
+                radius = size.maxDimension * 0.65f
+            )
+            drawCircle(
+                brush = Brush.radialGradient(
+                    colors = listOf(secondaryGlow, Color.Transparent),
+                    center = Offset(size.width * 0.88f, size.height * 0.55f),
+                    radius = size.maxDimension * 0.6f
+                ),
+                center = Offset(size.width * 0.88f, size.height * 0.55f),
+                radius = size.maxDimension * 0.6f
+            )
+            drawCircle(
+                brush = Brush.radialGradient(
+                    colors = listOf(tertiaryGlow, Color.Transparent),
+                    center = Offset(size.width * 0.2f, size.height * 0.92f),
+                    radius = size.maxDimension * 0.5f
+                ),
+                center = Offset(size.width * 0.2f, size.height * 0.92f),
+                radius = size.maxDimension * 0.5f
+            )
         }
         content()
     }
@@ -251,23 +243,23 @@ fun CategoryFilterRow(
                 label = {
                     Text(
                         text = category,
-                        fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
-                        fontSize = 13.sp
+                        style = MaterialTheme.typography.labelMedium,
+                        fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium
                     )
                 },
                 colors = FilterChipDefaults.filterChipColors(
-                    containerColor = DarkSurfaceElevated,
-                    labelColor = TextSecondary,
-                    selectedContainerColor = NeonCyan.copy(alpha = 0.2f),
-                    selectedLabelColor = NeonCyan
+                    containerColor = MaterialTheme.colorScheme.surfaceContainer,
+                    labelColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                    selectedContainerColor = MaterialTheme.colorScheme.primaryContainer,
+                    selectedLabelColor = MaterialTheme.colorScheme.onPrimaryContainer
                 ),
                 border = FilterChipDefaults.filterChipBorder(
-                    borderColor = if (isSelected) NeonCyan else DarkSurfaceBorder,
-                    selectedBorderColor = NeonCyan,
                     enabled = true,
-                    selected = isSelected
+                    selected = isSelected,
+                    borderColor = MaterialTheme.colorScheme.outlineVariant,
+                    selectedBorderColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.6f)
                 ),
-                shape = RoundedCornerShape(0.dp),
+                shape = RoundedCornerShape(12.dp),
                 modifier = Modifier.testTag("category_chip_$category")
             )
         }
@@ -287,16 +279,30 @@ fun AddStreamDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
+        containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+        shape = MaterialTheme.shapes.extraLarge,
         title = {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(
-                    imageVector = Icons.Default.Link,
-                    contentDescription = null,
-                    tint = NeonCyan,
-                    modifier = Modifier.size(24.dp)
+                Box(
+                    modifier = Modifier
+                        .size(38.dp)
+                        .clip(CircleShape)
+                        .background(MaterialTheme.colorScheme.primaryContainer),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Link,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.onPrimaryContainer,
+                        modifier = Modifier.size(20.dp)
+                    )
+                }
+                Spacer(modifier = Modifier.width(10.dp))
+                Text(
+                    text = "إضافة رابط بث مباشر",
+                    style = MaterialTheme.typography.titleLarge,
+                    color = MaterialTheme.colorScheme.onSurface
                 )
-                Spacer(modifier = Modifier.width(8.dp))
-                Text("إضافة رابط بث مباشر / Stream URL", color = TextPrimary, fontSize = 18.sp, fontWeight = FontWeight.Bold)
             }
         },
         text = {
@@ -310,6 +316,7 @@ fun AddStreamDialog(
                         onClick = { selectedType = MediaType.VIDEO },
                         leadingIcon = { Icon(Icons.Default.Videocam, null, modifier = Modifier.size(16.dp)) },
                         label = { Text("فيديو (Video)") },
+                        shape = RoundedCornerShape(12.dp),
                         modifier = Modifier.weight(1f)
                     )
                     FilterChip(
@@ -317,6 +324,7 @@ fun AddStreamDialog(
                         onClick = { selectedType = MediaType.AUDIO },
                         leadingIcon = { Icon(Icons.Default.MusicNote, null, modifier = Modifier.size(16.dp)) },
                         label = { Text("صوت (Audio)") },
+                        shape = RoundedCornerShape(12.dp),
                         modifier = Modifier.weight(1f)
                     )
                 }
@@ -324,14 +332,15 @@ fun AddStreamDialog(
                 OutlinedTextField(
                     value = url,
                     onValueChange = { url = it },
-                    label = { Text("رابط البث (URL: .mp4, .m3u8, .mp3)") },
+                    label = { Text("رابط البث (.mp4, .m3u8, .mp3)") },
                     placeholder = { Text("https://example.com/stream.mp4") },
                     singleLine = true,
+                    shape = RoundedCornerShape(14.dp),
                     colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = NeonCyan,
-                        unfocusedBorderColor = DarkSurfaceBorder,
-                        focusedTextColor = TextPrimary,
-                        unfocusedTextColor = TextPrimary
+                        focusedBorderColor = MaterialTheme.colorScheme.primary,
+                        unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant,
+                        focusedTextColor = MaterialTheme.colorScheme.onSurface,
+                        unfocusedTextColor = MaterialTheme.colorScheme.onSurface
                     ),
                     modifier = Modifier
                         .fillMaxWidth()
@@ -341,13 +350,14 @@ fun AddStreamDialog(
                 OutlinedTextField(
                     value = title,
                     onValueChange = { title = it },
-                    label = { Text("عنوان المقطع (Title)") },
+                    label = { Text("عنوان المقطع") },
                     singleLine = true,
+                    shape = RoundedCornerShape(14.dp),
                     colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = NeonCyan,
-                        unfocusedBorderColor = DarkSurfaceBorder,
-                        focusedTextColor = TextPrimary,
-                        unfocusedTextColor = TextPrimary
+                        focusedBorderColor = MaterialTheme.colorScheme.primary,
+                        unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant,
+                        focusedTextColor = MaterialTheme.colorScheme.onSurface,
+                        unfocusedTextColor = MaterialTheme.colorScheme.onSurface
                     ),
                     modifier = Modifier
                         .fillMaxWidth()
@@ -357,13 +367,14 @@ fun AddStreamDialog(
                 OutlinedTextField(
                     value = desc,
                     onValueChange = { desc = it },
-                    label = { Text("الوصف أو اسم الفنان (Artist / Source)") },
+                    label = { Text("الوصف أو اسم الفنان") },
                     singleLine = true,
+                    shape = RoundedCornerShape(14.dp),
                     colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = NeonCyan,
-                        unfocusedBorderColor = DarkSurfaceBorder,
-                        focusedTextColor = TextPrimary,
-                        unfocusedTextColor = TextPrimary
+                        focusedBorderColor = MaterialTheme.colorScheme.primary,
+                        unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant,
+                        focusedTextColor = MaterialTheme.colorScheme.onSurface,
+                        unfocusedTextColor = MaterialTheme.colorScheme.onSurface
                     ),
                     modifier = Modifier.fillMaxWidth()
                 )
@@ -377,7 +388,7 @@ fun AddStreamDialog(
                         onDismiss()
                     }
                 },
-                colors = ButtonDefaults.buttonColors(containerColor = NeonCyan, contentColor = Color.Black),
+                shape = RoundedCornerShape(14.dp),
                 modifier = Modifier.testTag("submit_stream_button")
             ) {
                 Text("تشغيل وإضافة", fontWeight = FontWeight.Bold)
@@ -385,17 +396,16 @@ fun AddStreamDialog(
         },
         dismissButton = {
             TextButton(onClick = onDismiss) {
-                Text("إلغاء", color = TextSecondary)
+                Text("إلغاء", color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
-        },
-        shape = RoundedCornerShape(0.dp),
-        modifier = Modifier.border(1.dp, NeonCyan.copy(alpha = 0.5f), RoundedCornerShape(0.dp))
+        }
     )
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SleepTimerDialog(
-    timerMode: com.example.media.SleepTimerMode,
+    timerMode: SleepTimerMode,
     currentRemainingSeconds: Int,
     isFadeOut: Boolean,
     currentTrackTitle: String?,
@@ -407,257 +417,278 @@ fun SleepTimerDialog(
     onToggleFadeOut: () -> Unit
 ) {
     val presetOptions = listOf(10, 15, 30, 45, 60, 90)
-    var customMinutes by remember { androidx.compose.runtime.mutableFloatStateOf(20f) }
+    var customMinutes by remember { mutableFloatStateOf(20f) }
     var fadeOutState by remember { mutableStateOf(isFadeOut) }
+    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
 
-    AlertDialog(
+    ModalBottomSheet(
         onDismissRequest = onDismiss,
-        title = {
+        sheetState = sheetState,
+        containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+        shape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp),
+        dragHandle = { BottomSheetDefaults.DragHandle() }
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .verticalScroll(rememberScrollState())
+                .padding(horizontal = 20.dp)
+                .padding(bottom = 24.dp)
+                .navigationBarsPadding(),
+            verticalArrangement = Arrangement.spacedBy(14.dp)
+        ) {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(
-                    imageVector = Icons.Default.Bedtime,
-                    contentDescription = null,
-                    tint = NeonViolet,
-                    modifier = Modifier.size(26.dp)
-                )
-                Spacer(modifier = Modifier.width(10.dp))
+                Box(
+                    modifier = Modifier
+                        .size(42.dp)
+                        .clip(CircleShape)
+                        .background(MaterialTheme.colorScheme.secondaryContainer),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Bedtime,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.onSecondaryContainer,
+                        modifier = Modifier.size(22.dp)
+                    )
+                }
+                Spacer(modifier = Modifier.width(12.dp))
                 Column {
-                    Text("مؤقت النوم (Sleep Timer)", color = TextPrimary, fontSize = 18.sp, fontWeight = FontWeight.Bold)
-                    Text("إيقاف الصوت تلقائياً بعد فترة محددة", color = TextSecondary, fontSize = 11.sp)
+                    Text(
+                        text = "مؤقت النوم",
+                        style = MaterialTheme.typography.titleLarge,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                    Text(
+                        text = "إيقاف الصوت تلقائياً بعد فترة محددة",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
                 }
             }
-        },
-        text = {
-            Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
-                // Active Timer Card
-                if (timerMode != com.example.media.SleepTimerMode.OFF) {
-                    androidx.compose.material3.Card(
-                        colors = androidx.compose.material3.CardDefaults.cardColors(
-                            containerColor = NeonCyan.copy(alpha = 0.12f)
-                        ),
-                        shape = RoundedCornerShape(0.dp),
-                        border = androidx.compose.material3.CardDefaults.outlinedCardBorder().copy(
-                            brush = androidx.compose.ui.graphics.SolidColor(NeonCyan.copy(alpha = 0.6f))
-                        ),
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Column(modifier = Modifier.padding(14.dp)) {
-                            if (timerMode == com.example.media.SleepTimerMode.END_OF_TRACK) {
-                                Row(verticalAlignment = Alignment.CenterVertically) {
-                                    Icon(
-                                        imageVector = Icons.Default.MusicNote,
-                                        contentDescription = null,
-                                        tint = NeonCyan,
-                                        modifier = Modifier.size(18.dp)
-                                    )
-                                    Spacer(modifier = Modifier.width(6.dp))
-                                    Text(
-                                        text = "نشط: يتوقف عند نهاية المقطع الحالي",
-                                        color = NeonCyan,
-                                        fontWeight = FontWeight.Bold,
-                                        fontSize = 13.sp
-                                    )
-                                }
-                                if (!currentTrackTitle.isNullOrBlank()) {
-                                    Spacer(modifier = Modifier.height(2.dp))
-                                    Text(
-                                        text = currentTrackTitle,
-                                        color = TextSecondary,
-                                        fontSize = 12.sp,
-                                        maxLines = 1,
-                                        overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
-                                    )
-                                }
-                            } else {
-                                Row(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.SpaceBetween,
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    Column {
-                                        Text(
-                                            text = "المؤقت نشط الآن:",
-                                            color = TextSecondary,
-                                            fontSize = 12.sp
-                                        )
-                                        Text(
-                                            text = MediaTimeFormatter.formatMs(currentRemainingSeconds * 1000L),
-                                            color = NeonCyan,
-                                            fontSize = 24.sp,
-                                            fontWeight = FontWeight.Bold
-                                        )
-                                    }
 
-                                    Button(
-                                        onClick = onAddFiveMinutes,
-                                        colors = ButtonDefaults.buttonColors(
-                                            containerColor = DarkSurfaceBorder,
-                                            contentColor = NeonCyan
-                                        ),
-                                        shape = RoundedCornerShape(0.dp),
-                                        contentPadding = PaddingValues(horizontal = 10.dp, vertical = 6.dp)
-                                    ) {
-                                        Text("+5 دقائق", fontSize = 12.sp, fontWeight = FontWeight.Bold)
-                                    }
-                                }
+            // Active Timer Card
+            if (timerMode != SleepTimerMode.OFF) {
+                Card(
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.45f)
+                    ),
+                    shape = MaterialTheme.shapes.large,
+                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.45f)),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Column(modifier = Modifier.padding(16.dp)) {
+                        if (timerMode == SleepTimerMode.END_OF_TRACK) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Icon(
+                                    imageVector = Icons.Default.MusicNote,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.primary,
+                                    modifier = Modifier.size(18.dp)
+                                )
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text(
+                                    text = "نشط: يتوقف عند نهاية المقطع الحالي",
+                                    color = MaterialTheme.colorScheme.primary,
+                                    style = MaterialTheme.typography.titleSmall
+                                )
                             }
-
-                            Spacer(modifier = Modifier.height(10.dp))
-
-                            OutlinedButton(
-                                onClick = {
-                                    onCancelTimer()
-                                    onDismiss()
-                                },
-                                colors = ButtonDefaults.outlinedButtonColors(contentColor = NeonPink),
-                                shape = RoundedCornerShape(0.dp),
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .testTag("cancel_sleep_timer_button")
+                            if (!currentTrackTitle.isNullOrBlank()) {
+                                Spacer(modifier = Modifier.height(4.dp))
+                                Text(
+                                    text = currentTrackTitle,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    style = MaterialTheme.typography.bodySmall,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis
+                                )
+                            }
+                        } else {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
                             ) {
-                                Text("إلغاء مؤقت النوم", fontWeight = FontWeight.SemiBold, fontSize = 12.sp)
+                                Column {
+                                    Text(
+                                        text = "الوقت المتبقي",
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        style = MaterialTheme.typography.labelMedium
+                                    )
+                                    Text(
+                                        text = MediaTimeFormatter.formatMs(currentRemainingSeconds * 1000L),
+                                        color = MaterialTheme.colorScheme.primary,
+                                        style = MaterialTheme.typography.headlineMedium.merge(MonoTextStyle),
+                                        fontWeight = FontWeight.Bold
+                                    )
+                                }
+
+                                FilledTonalButton(
+                                    onClick = onAddFiveMinutes,
+                                    shape = RoundedCornerShape(12.dp),
+                                    contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp)
+                                ) {
+                                    Text("+5 دقائق", style = MaterialTheme.typography.labelMedium)
+                                }
                             }
                         }
-                    }
-                }
 
-                // 1. End of Track Option
-                androidx.compose.material3.Card(
-                    onClick = {
-                        onSetEndOfTrack()
-                        onDismiss()
-                    },
-                    colors = androidx.compose.material3.CardDefaults.cardColors(
-                        containerColor = if (timerMode == com.example.media.SleepTimerMode.END_OF_TRACK)
-                            NeonViolet.copy(alpha = 0.2f)
-                        else
-                            DarkSurfaceBorder
-                    ),
-                    shape = RoundedCornerShape(0.dp),
-                    border = androidx.compose.material3.CardDefaults.outlinedCardBorder().copy(
-                        brush = androidx.compose.ui.graphics.SolidColor(
-                            if (timerMode == com.example.media.SleepTimerMode.END_OF_TRACK) NeonViolet else Color.Transparent
-                        )
-                    ),
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .testTag("sleep_timer_end_of_track")
-                ) {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(14.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Box(
+                        Spacer(modifier = Modifier.height(12.dp))
+
+                        OutlinedButton(
+                            onClick = {
+                                onCancelTimer()
+                                onDismiss()
+                            },
+                            colors = ButtonDefaults.outlinedButtonColors(
+                                contentColor = MaterialTheme.colorScheme.tertiary
+                            ),
+                            border = BorderStroke(1.dp, MaterialTheme.colorScheme.tertiary.copy(alpha = 0.6f)),
+                            shape = RoundedCornerShape(14.dp),
                             modifier = Modifier
-                                .size(36.dp)
-                                .clip(RoundedCornerShape(0.dp))
-                                .background(NeonViolet.copy(alpha = 0.2f)),
-                            contentAlignment = Alignment.Center
+                                .fillMaxWidth()
+                                .testTag("cancel_sleep_timer_button")
                         ) {
-                            Icon(
-                                imageVector = Icons.Default.MusicNote,
-                                contentDescription = null,
-                                tint = NeonViolet,
-                                modifier = Modifier.size(20.dp)
-                            )
-                        }
-
-                        Spacer(modifier = Modifier.width(12.dp))
-
-                        Column(modifier = Modifier.weight(1f)) {
-                            Text(
-                                text = "عند نهاية المقطع الحالي (End of Track)",
-                                color = TextPrimary,
-                                fontWeight = FontWeight.Bold,
-                                fontSize = 14.sp
-                            )
-                            Text(
-                                text = "إيقاف التشغيل بمجرد انتهاء المقطع الحالي تلقائياً",
-                                color = TextSecondary,
-                                fontSize = 11.sp
-                            )
+                            Text("إلغاء مؤقت النوم", style = MaterialTheme.typography.labelLarge)
                         }
                     }
                 }
+            }
 
-                // 2. Preset Durations
-                Text(
-                    text = "أو اختر مدة زمنية محددة:",
-                    color = TextPrimary,
-                    fontSize = 13.sp,
-                    fontWeight = FontWeight.Medium
-                )
-
+            // End of Track Card
+            Card(
+                onClick = {
+                    onSetEndOfTrack()
+                    onDismiss()
+                },
+                colors = CardDefaults.cardColors(
+                    containerColor = if (timerMode == SleepTimerMode.END_OF_TRACK)
+                        MaterialTheme.colorScheme.secondaryContainer
+                    else
+                        MaterialTheme.colorScheme.surfaceContainer
+                ),
+                shape = MaterialTheme.shapes.medium,
+                border = if (timerMode == SleepTimerMode.END_OF_TRACK) {
+                    BorderStroke(1.dp, MaterialTheme.colorScheme.secondary)
+                } else null,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .testTag("sleep_timer_end_of_track")
+            ) {
                 Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(6.dp)
-                ) {
-                    presetOptions.take(3).forEach { min ->
-                        Button(
-                            onClick = {
-                                onSetDuration(min, fadeOutState)
-                                onDismiss()
-                            },
-                            colors = ButtonDefaults.buttonColors(containerColor = DarkSurfaceBorder),
-                            shape = RoundedCornerShape(0.dp),
-                            modifier = Modifier.weight(1f)
-                        ) {
-                            Text("$min د", fontSize = 12.sp, color = TextPrimary)
-                        }
-                    }
-                }
-
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(6.dp)
-                ) {
-                    presetOptions.drop(3).forEach { min ->
-                        Button(
-                            onClick = {
-                                onSetDuration(min, fadeOutState)
-                                onDismiss()
-                            },
-                            colors = ButtonDefaults.buttonColors(containerColor = DarkSurfaceBorder),
-                            shape = RoundedCornerShape(0.dp),
-                            modifier = Modifier.weight(1f)
-                        ) {
-                            Text("$min د", fontSize = 12.sp, color = TextPrimary)
-                        }
-                    }
-                }
-
-                // 3. Custom Duration Slider
-                Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .clip(RoundedCornerShape(0.dp))
-                        .background(DarkSurfaceBorder.copy(alpha = 0.5f))
-                        .padding(10.dp)
+                        .padding(14.dp),
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
+                    Box(
+                        modifier = Modifier
+                            .size(40.dp)
+                            .clip(CircleShape)
+                            .background(MaterialTheme.colorScheme.secondary.copy(alpha = 0.16f)),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.MusicNote,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.secondary,
+                            modifier = Modifier.size(20.dp)
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.width(12.dp))
+
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = "عند نهاية المقطع الحالي",
+                            color = MaterialTheme.colorScheme.onSurface,
+                            style = MaterialTheme.typography.titleSmall
+                        )
+                        Text(
+                            text = "إيقاف التشغيل تلقائياً بمجرد انتهاء المقطع",
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            style = MaterialTheme.typography.bodySmall
+                        )
+                    }
+                }
+            }
+
+            // Preset Durations
+            Text(
+                text = "مدد سريعة",
+                color = MaterialTheme.colorScheme.onSurface,
+                style = MaterialTheme.typography.titleSmall
+            )
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                presetOptions.take(3).forEach { min ->
+                    FilledTonalButton(
+                        onClick = {
+                            onSetDuration(min, fadeOutState)
+                            onDismiss()
+                        },
+                        shape = RoundedCornerShape(14.dp),
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        Text("$min د", style = MaterialTheme.typography.labelLarge)
+                    }
+                }
+            }
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                presetOptions.drop(3).forEach { min ->
+                    FilledTonalButton(
+                        onClick = {
+                            onSetDuration(min, fadeOutState)
+                            onDismiss()
+                        },
+                        shape = RoundedCornerShape(14.dp),
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        Text("$min د", style = MaterialTheme.typography.labelLarge)
+                    }
+                }
+            }
+
+            // Custom Duration Card
+            Surface(
+                color = MaterialTheme.colorScheme.surfaceContainer,
+                shape = MaterialTheme.shapes.medium,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Column(modifier = Modifier.padding(14.dp)) {
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Text("تحديد مدة مخصصة:", color = TextSecondary, fontSize = 12.sp)
+                        Text(
+                            text = "مدة مخصصة",
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            style = MaterialTheme.typography.labelLarge
+                        )
                         Text(
                             text = "${customMinutes.toInt()} دقيقة",
-                            color = NeonCyan,
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 13.sp
+                            color = MaterialTheme.colorScheme.primary,
+                            style = MaterialTheme.typography.titleMedium.merge(MonoTextStyle),
+                            fontWeight = FontWeight.Bold
                         )
                     }
 
-                    androidx.compose.material3.Slider(
+                    Slider(
                         value = customMinutes,
                         onValueChange = { customMinutes = it },
                         valueRange = 5f..120f,
                         steps = 22,
-                        colors = androidx.compose.material3.SliderDefaults.colors(
-                            thumbColor = NeonCyan,
-                            activeTrackColor = NeonCyan
+                        colors = SliderDefaults.colors(
+                            thumbColor = MaterialTheme.colorScheme.primary,
+                            activeTrackColor = MaterialTheme.colorScheme.primary
                         ),
                         modifier = Modifier.fillMaxWidth()
                     )
@@ -667,57 +698,208 @@ fun SleepTimerDialog(
                             onSetDuration(customMinutes.toInt(), fadeOutState)
                             onDismiss()
                         },
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = NeonCyan,
-                            contentColor = Color.Black
-                        ),
-                        shape = RoundedCornerShape(0.dp),
+                        shape = RoundedCornerShape(14.dp),
                         modifier = Modifier.fillMaxWidth()
                     ) {
-                        Text("تفعيل (${customMinutes.toInt()} دقيقة)", fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                        Text(
+                            text = "تفعيل (${customMinutes.toInt()} دقيقة)",
+                            style = MaterialTheme.typography.labelLarge
+                        )
                     }
                 }
+            }
 
-                // 4. Fade Out Toggle
+            // Fade Out Row
+            Surface(
+                color = MaterialTheme.colorScheme.surfaceContainer,
+                shape = MaterialTheme.shapes.medium,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(MaterialTheme.shapes.medium)
+                    .clickable {
+                        fadeOutState = !fadeOutState
+                        onToggleFadeOut()
+                    }
+            ) {
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .clip(RoundedCornerShape(0.dp))
-                        .clickable {
-                            fadeOutState = !fadeOutState
-                            onToggleFadeOut()
-                        }
-                        .padding(vertical = 4.dp),
+                        .padding(horizontal = 14.dp, vertical = 10.dp),
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Column(modifier = Modifier.weight(1f)) {
-                        Text("تلاشي تدريجي للصوت", color = TextPrimary, fontSize = 13.sp, fontWeight = FontWeight.Medium)
-                        Text("خفض الصوت بنعومة في آخر 20 ثانية", color = TextSecondary, fontSize = 11.sp)
+                        Text(
+                            text = "تلاشي تدريجي للصوت",
+                            color = MaterialTheme.colorScheme.onSurface,
+                            style = MaterialTheme.typography.titleSmall
+                        )
+                        Text(
+                            text = "خفض الصوت بنعومة في آخر 20 ثانية",
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            style = MaterialTheme.typography.bodySmall
+                        )
                     }
 
-                    androidx.compose.material3.Switch(
+                    Switch(
                         checked = fadeOutState,
                         onCheckedChange = {
                             fadeOutState = it
                             onToggleFadeOut()
                         },
-                        colors = androidx.compose.material3.SwitchDefaults.colors(
-                            checkedThumbColor = Color.Black,
-                            checkedTrackColor = NeonCyan
+                        colors = SwitchDefaults.colors(
+                            checkedThumbColor = MaterialTheme.colorScheme.onPrimary,
+                            checkedTrackColor = MaterialTheme.colorScheme.primary
                         )
                     )
                 }
             }
-        },
-        confirmButton = {},
-        dismissButton = {
-            TextButton(onClick = onDismiss) {
-                Text("إغلاق", color = TextSecondary)
+        }
+    }
+}
+
+@Composable
+fun SelectPlaylistDialog(
+    itemTitle: String,
+    playlists: List<com.example.media.Playlist>,
+    onSelectPlaylist: (com.example.media.Playlist) -> Unit,
+    onCreatePlaylist: (name: String) -> Unit,
+    onDismiss: () -> Unit
+) {
+    var newPlaylistName by remember { mutableStateOf("") }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+        shape = MaterialTheme.shapes.extraLarge,
+        modifier = Modifier.testTag("select_playlist_dialog"),
+        title = {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Box(
+                    modifier = Modifier
+                        .size(38.dp)
+                        .clip(CircleShape)
+                        .background(MaterialTheme.colorScheme.tertiaryContainer),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Filled.QueueMusic,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.onTertiaryContainer,
+                        modifier = Modifier.size(20.dp)
+                    )
+                }
+                Spacer(modifier = Modifier.width(10.dp))
+                Column {
+                    Text(
+                        text = "إضافة إلى قائمة تشغيل",
+                        style = MaterialTheme.typography.titleMedium,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                    Text(
+                        text = itemTitle,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        style = MaterialTheme.typography.bodySmall,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                }
             }
         },
-        containerColor = DarkSurfaceElevated,
-        shape = RoundedCornerShape(0.dp),
-        modifier = Modifier.border(1.dp, NeonViolet.copy(alpha = 0.5f), RoundedCornerShape(0.dp))
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    OutlinedTextField(
+                        value = newPlaylistName,
+                        onValueChange = { newPlaylistName = it },
+                        placeholder = { Text("إنشاء قائمة جديدة...") },
+                        singleLine = true,
+                        shape = RoundedCornerShape(14.dp),
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = MaterialTheme.colorScheme.tertiary,
+                            unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant,
+                            focusedTextColor = MaterialTheme.colorScheme.onSurface,
+                            unfocusedTextColor = MaterialTheme.colorScheme.onSurface
+                        ),
+                        modifier = Modifier.weight(1f)
+                    )
+                    Button(
+                        onClick = {
+                            if (newPlaylistName.isNotBlank()) {
+                                onCreatePlaylist(newPlaylistName.trim())
+                                newPlaylistName = ""
+                            }
+                        },
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = MaterialTheme.colorScheme.tertiary,
+                            contentColor = MaterialTheme.colorScheme.onTertiary
+                        ),
+                        shape = RoundedCornerShape(14.dp),
+                        contentPadding = PaddingValues(horizontal = 12.dp, vertical = 14.dp)
+                    ) {
+                        Icon(Icons.Default.Add, contentDescription = "إنشاء", modifier = Modifier.size(20.dp))
+                    }
+                }
+
+                if (playlists.isEmpty()) {
+                    Text(
+                        text = "لا توجد قوائم تشغيل بعد",
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        style = MaterialTheme.typography.bodySmall
+                    )
+                } else {
+                    LazyColumn(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(220.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        items(playlists, key = { it.id }) { pl ->
+                            Surface(
+                                onClick = {
+                                    onSelectPlaylist(pl)
+                                    onDismiss()
+                                },
+                                color = MaterialTheme.colorScheme.surfaceContainer,
+                                shape = MaterialTheme.shapes.medium,
+                                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(horizontal = 14.dp, vertical = 12.dp),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.SpaceBetween
+                                ) {
+                                    Text(
+                                        text = pl.name,
+                                        color = MaterialTheme.colorScheme.onSurface,
+                                        style = MaterialTheme.typography.titleSmall,
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis,
+                                        modifier = Modifier.weight(1f)
+                                    )
+                                    Text(
+                                        text = "${pl.items.size} مقطع",
+                                        color = MaterialTheme.colorScheme.tertiary,
+                                        style = MaterialTheme.typography.labelMedium
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = onDismiss) {
+                Text("إغلاق", color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+        }
     )
 }

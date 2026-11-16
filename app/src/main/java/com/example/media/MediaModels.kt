@@ -15,7 +15,8 @@ data class MediaItemData(
     val mediaType: MediaType = MediaType.AUDIO,
     val category: String = "General",
     val isFavorite: Boolean = false,
-    val isLocal: Boolean = false
+    val isLocal: Boolean = false,
+    val subtitleUri: String? = null
 )
 
 data class PlaylistCheckpoint(
@@ -32,7 +33,29 @@ data class Playlist(
     val name: String,
     val description: String = "",
     val items: List<MediaItemData> = emptyList(),
-    val checkpoint: PlaylistCheckpoint? = null
+    val checkpoint: PlaylistCheckpoint? = null,
+    val sourceTreeUri: String? = null
+)
+
+data class PlaybackHistoryEntry(
+    val item: MediaItemData,
+    val lastPositionMs: Long = 0L,
+    val durationMs: Long = 0L,
+    val playedAt: Long = System.currentTimeMillis()
+)
+
+data class ABLoopState(
+    val pointAMs: Long? = null,
+    val pointBMs: Long? = null,
+    val isActive: Boolean = false
+)
+
+data class TrackOption(
+    val groupIndex: Int,
+    val trackIndex: Int,
+    val label: String,
+    val language: String,
+    val isSelected: Boolean
 )
 
 enum class RepeatState {
@@ -50,6 +73,7 @@ enum class SleepTimerMode {
 enum class DownloadStatus {
     QUEUED,
     DOWNLOADING,
+    PAUSED,
     COMPLETED,
     FAILED
 }
@@ -59,20 +83,25 @@ data class DownloadItem(
     val url: String,
     val fileName: String,
     val progress: Float = 0f,
+    val bytesDownloaded: Long = 0L,
+    val totalBytes: Long = -1L,
+    val speedBytesPerSec: Long = 0L,
     val status: DownloadStatus = DownloadStatus.QUEUED,
     val mediaType: MediaType = MediaType.VIDEO,
+    val savedUri: String? = null,
+    val errorMessage: String? = null,
+    val supportsResume: Boolean = true,
     val timestamp: Long = System.currentTimeMillis()
 )
 
-data class VideoQuality(
-    val label: String,
-    val sizeLabel: String
+data class LinkInspectionResult(
+    val url: String,
+    val isSupportedPlatformPage: Boolean,
+    val platformName: String,
+    val suggestedFileName: String,
+    val mimeType: String?,
+    val contentLengthBytes: Long,
+    val supportsRange: Boolean,
+    val detectedMediaType: MediaType,
+    val errorNote: String? = null
 )
-
-data class ExtractedMetadata(
-    val title: String,
-    val thumbnailUrl: String,
-    val platform: String,
-    val qualities: List<VideoQuality>
-)
-

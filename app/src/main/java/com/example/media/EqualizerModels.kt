@@ -35,5 +35,6 @@ data class EqualizerState(
     val isEnabled: Boolean = true,
     val currentPresetId: String = "flat",
     val bands: List<EqualizerBand> = DefaultEqualizerData.defaultBands,
-    val bassBoostStrength: Int = 0 // 0 to 1000 millibels or 0 to 100%
+    val bassBoostStrength: Int = 0, // 0 to 100%
+    val preampGainPercent: Int = 0 // 0 to 100% (up to +15dB via LoudnessEnhancer)
 )
