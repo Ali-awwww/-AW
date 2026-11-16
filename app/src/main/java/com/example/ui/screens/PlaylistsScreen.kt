@@ -106,6 +106,7 @@ import com.example.ui.theme.MonoTextStyle
 @Composable
 fun PlaylistsScreen(
     viewModel: MediaPlayerViewModel,
+    headerNotice: (@Composable () -> Unit)? = null,
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
@@ -212,11 +213,13 @@ fun PlaylistsScreen(
                     }
                 )
 
+                headerNotice?.invoke()
+
                 LazyColumn(
                     modifier = Modifier
                         .fillMaxSize()
                         .padding(horizontal = 16.dp),
-                    contentPadding = PaddingValues(top = 4.dp, bottom = 148.dp),
+                    contentPadding = PaddingValues(top = 6.dp, bottom = 148.dp),
                     verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
                     item {

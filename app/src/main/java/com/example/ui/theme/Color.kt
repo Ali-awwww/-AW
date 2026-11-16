@@ -2,42 +2,42 @@ package com.example.ui.theme
 
 import androidx.compose.ui.graphics.Color
 
-// Balanced Material 3 Neon-Tonal Dark Palette
-val CyanPrimary = Color(0xFF33E8D0)
-val CyanOnPrimary = Color(0xFF003730)
-val CyanContainer = Color(0xFF004F45)
-val CyanOnContainer = Color(0xFF8FFBE8)
+// Material 3 Tonal Dark Palette with Balanced Luminous Accents
+val CyanPrimary = Color(0xFF56ECD8)
+val CyanOnPrimary = Color(0xFF003731)
+val CyanContainer = Color(0xFF0A4F47)
+val CyanOnContainer = Color(0xFFA2FBF0)
 
-val VioletSecondary = Color(0xFFB983FF)
-val VioletOnSecondary = Color(0xFF280B4E)
-val VioletContainer = Color(0xFF3D1E6D)
-val VioletOnContainer = Color(0xFFEDDFFF)
+val VioletSecondary = Color(0xFFCBB6FF)
+val VioletOnSecondary = Color(0xFF331C69)
+val VioletContainer = Color(0xFF493482)
+val VioletOnContainer = Color(0xFFE9DDFF)
 
-val PinkTertiary = Color(0xFFFF5C9E)
-val PinkOnTertiary = Color(0xFF4A0020)
-val PinkContainer = Color(0xFF5C1134)
-val PinkOnContainer = Color(0xFFFFD9E3)
+val PinkTertiary = Color(0xFFFF8CB8)
+val PinkOnTertiary = Color(0xFF540D2D)
+val PinkContainer = Color(0xFF6B2343)
+val PinkOnContainer = Color(0xFFFFD9E5)
 
-val SurfaceBase = Color(0xFF0B0E17)
-val SurfaceContainerLowest = Color(0xFF070A11)
-val SurfaceContainerLow = Color(0xFF121725)
-val SurfaceContainer = Color(0xFF181F31)
-val SurfaceContainerHigh = Color(0xFF20283E)
-val SurfaceContainerHighest = Color(0xFF2A3450)
+val SurfaceBase = Color(0xFF11141B)
+val SurfaceContainerLowest = Color(0xFF0B0E14)
+val SurfaceContainerLow = Color(0xFF191D26)
+val SurfaceContainer = Color(0xFF202531)
+val SurfaceContainerHigh = Color(0xFF2A303E)
+val SurfaceContainerHighest = Color(0xFF353C4D)
 
-val OutlineSubtle = Color(0xFF2E3A59)
-val OutlineStrong = Color(0xFF47557B)
+val OutlineSubtle = Color(0xFF3E465B)
+val OutlineStrong = Color(0xFF5A647E)
 
-val OnSurfacePrimary = Color(0xFFF3F6FC)
-val OnSurfaceSecondary = Color(0xFFA7B3CC)
-val OnSurfaceMuted = Color(0xFF707D99)
+val OnSurfacePrimary = Color(0xFFE8ECF5)
+val OnSurfaceSecondary = Color(0xFFB6C0D4)
+val OnSurfaceMuted = Color(0xFF8893AA)
 
-val ErrorRed = Color(0xFFFF6B8B)
-val OnErrorRed = Color(0xFF4E0017)
-val ErrorContainerDark = Color(0xFF671029)
-val OnErrorContainerDark = Color(0xFFFFD9DF)
+val ErrorRed = Color(0xFFFF889E)
+val OnErrorRed = Color(0xFF57001B)
+val ErrorContainerDark = Color(0xFF721933)
+val OnErrorContainerDark = Color(0xFFFFD9E0)
 
-// Semantic aliases preserved for balanced accents
+// Semantic aliases
 val NeonCyan = CyanPrimary
 val NeonViolet = VioletSecondary
 val NeonPink = PinkTertiary

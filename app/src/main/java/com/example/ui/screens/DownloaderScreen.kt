@@ -67,6 +67,7 @@ import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -84,6 +85,7 @@ fun DownloaderScreen(
     onRequestNotificationPermission: () -> Unit = {},
     isBatteryProtected: Boolean = true,
     onOpenBackgroundShield: () -> Unit = {},
+    headerNotice: (@Composable () -> Unit)? = null,
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
@@ -124,7 +126,7 @@ fun DownloaderScreen(
                             overflow = TextOverflow.Ellipsis
                         )
                         Text(
-                            text = "حفظ مباشر إلى التنزيلات ومكتبة التطبيق",
+                            text = "حفظ مباشر إلى التنزيلات والمكتبة",
                             style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             maxLines = 1,
@@ -161,18 +163,23 @@ fun DownloaderScreen(
             }
         )
 
+        headerNotice?.invoke()
+
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(horizontal = 16.dp)
+                .padding(top = 6.dp)
         ) {
             OutlinedTextField(
                 value = downloadUrl,
                 onValueChange = { viewModel.setDownloadUrl(it) },
                 placeholder = {
                     Text(
-                        text = "ضع رابط ملف الوسائط المباشر (mp4 / mp3 / m4a)...",
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                        text = "الصق رابط mp4 أو mp3 هنا...",
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
                     )
                 },
                 leadingIcon = {
@@ -180,6 +187,8 @@ fun DownloaderScreen(
                         IconButton(onClick = { viewModel.setDownloadUrl("") }) {
                             Icon(Icons.Default.Close, contentDescription = "Clear", tint = MaterialTheme.colorScheme.onSurfaceVariant)
                         }
+                    } else {
+                        Icon(Icons.Default.CloudDownload, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                 },
                 trailingIcon = {
@@ -191,14 +200,14 @@ fun DownloaderScreen(
                 },
                 singleLine = true,
                 colors = OutlinedTextFieldDefaults.colors(
-                    focusedContainerColor = MaterialTheme.colorScheme.surfaceContainer,
-                    unfocusedContainerColor = MaterialTheme.colorScheme.surfaceContainerLow,
+                    focusedContainerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+                    unfocusedContainerColor = MaterialTheme.colorScheme.surfaceContainer,
                     focusedBorderColor = MaterialTheme.colorScheme.primary,
-                    unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant,
+                    unfocusedBorderColor = Color.Transparent,
                     focusedTextColor = MaterialTheme.colorScheme.onSurface,
                     unfocusedTextColor = MaterialTheme.colorScheme.onSurface
                 ),
-                shape = RoundedCornerShape(18.dp),
+                shape = RoundedCornerShape(28.dp),
                 modifier = Modifier
                     .fillMaxWidth()
                     .testTag("download_url_input")
@@ -410,43 +419,49 @@ fun DownloaderScreen(
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .weight(1f),
+                        .weight(1f)
+                        .padding(bottom = 32.dp),
                     contentAlignment = Alignment.Center
                 ) {
                     Surface(
-                        color = MaterialTheme.colorScheme.surfaceContainerLow,
-                        shape = MaterialTheme.shapes.large,
+                        color = MaterialTheme.colorScheme.surfaceContainer,
+                        tonalElevation = 2.dp,
+                        shape = MaterialTheme.shapes.extraLarge,
                         modifier = Modifier.fillMaxWidth()
                     ) {
                         Column(
-                            modifier = Modifier.padding(32.dp),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 24.dp, vertical = 32.dp),
                             horizontalAlignment = Alignment.CenterHorizontally
                         ) {
                             Box(
                                 modifier = Modifier
                                     .size(64.dp)
                                     .clip(CircleShape)
-                                    .background(MaterialTheme.colorScheme.surfaceContainerHigh),
+                                    .background(MaterialTheme.colorScheme.primaryContainer),
                                 contentAlignment = Alignment.Center
                             ) {
                                 Icon(
                                     imageVector = Icons.Default.CloudDownload,
                                     contentDescription = null,
-                                    tint = MaterialTheme.colorScheme.primary,
+                                    tint = MaterialTheme.colorScheme.onPrimaryContainer,
                                     modifier = Modifier.size(30.dp)
                                 )
                             }
-                            Spacer(modifier = Modifier.height(12.dp))
+                            Spacer(modifier = Modifier.height(14.dp))
                             Text(
                                 text = "لا توجد تحميلات نشطة",
                                 color = MaterialTheme.colorScheme.onSurface,
-                                style = MaterialTheme.typography.titleMedium
+                                style = MaterialTheme.typography.titleMedium,
+                                textAlign = TextAlign.Center
                             )
-                            Spacer(modifier = Modifier.height(4.dp))
+                            Spacer(modifier = Modifier.height(6.dp))
                             Text(
                                 text = "الصق رابط ملف mp4 أو mp3 وسيبدأ التحميل مع إشعار حي",
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                style = MaterialTheme.typography.bodySmall
+                                style = MaterialTheme.typography.bodySmall,
+                                textAlign = TextAlign.Center
                             )
                         }
                     }

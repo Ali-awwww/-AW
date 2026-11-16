@@ -422,9 +422,9 @@ fun MainAppContent(
                                 }
 
                                 NavigationBar(
-                                    containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
+                                    containerColor = MaterialTheme.colorScheme.surfaceContainer,
                                     contentColor = MaterialTheme.colorScheme.onSurface,
-                                    tonalElevation = 6.dp,
+                                    tonalElevation = 3.dp,
                                     modifier = Modifier
                                         .fillMaxWidth()
                                         .testTag("main_bottom_nav")
@@ -524,7 +524,7 @@ fun MainAppContent(
                     ) {
                         if (useNavigationRail) {
                             NavigationRail(
-                                containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
+                                containerColor = MaterialTheme.colorScheme.surfaceContainer,
                                 contentColor = MaterialTheme.colorScheme.onSurface,
                                 modifier = Modifier
                                     .fillMaxHeight()
@@ -597,74 +597,26 @@ fun MainAppContent(
                             }
                         }
 
-                        Column(
-                            modifier = Modifier
-                                .weight(1f)
-                                .fillMaxHeight(),
-                            horizontalAlignment = Alignment.CenterHorizontally
-                        ) {
-                            Column(
-                                modifier = Modifier
-                                    .weight(1f)
-                                    .fillMaxWidth()
-                                    .widthIn(max = 920.dp)
-                            ) {
-                                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
-                                    !hasNotificationPermission &&
-                                    !notificationBannerDismissed
-                                ) {
-                                    Surface(
-                                        color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.6f),
-                                        shape = RoundedCornerShape(14.dp),
-                                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.4f)),
-                                        modifier = Modifier
-                                            .fillMaxWidth()
-                                            .padding(horizontal = 16.dp, vertical = 6.dp)
-                                    ) {
-                                        Row(
-                                            modifier = Modifier
-                                                .fillMaxWidth()
-                                                .padding(horizontal = 12.dp, vertical = 4.dp),
-                                            verticalAlignment = Alignment.CenterVertically,
-                                            horizontalArrangement = Arrangement.SpaceBetween
-                                        ) {
-                                            Row(
-                                                modifier = Modifier.weight(1f),
-                                                verticalAlignment = Alignment.CenterVertically
-                                            ) {
-                                                Icon(
-                                                    imageVector = Icons.Default.NotificationsActive,
-                                                    contentDescription = null,
-                                                    tint = MaterialTheme.colorScheme.primary,
-                                                    modifier = Modifier.size(18.dp)
-                                                )
-                                                Spacer(modifier = Modifier.width(8.dp))
-                                                Text(
-                                                    text = "فعّل الإشعارات لعرض تحكم المشغّل وتقدّم التحميل",
-                                                    color = MaterialTheme.colorScheme.onSurface,
-                                                    style = MaterialTheme.typography.bodySmall
-                                                )
-                                            }
-                                            TextButton(onClick = { requestNotificationsIfNeeded() }) {
-                                                Text("تفعيل", color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Bold, fontSize = 12.sp)
-                                            }
-                                        }
-                                    }
-                                }
+                        val showNotifBanner = Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
+                            !hasNotificationPermission &&
+                            !notificationBannerDismissed
+                        val showBatteryBanner = !isBatteryProtected && !restrictionBannerDismissed
 
-                                if (!isBatteryProtected && !restrictionBannerDismissed) {
+                        val topNoticeBanner: (@Composable () -> Unit)? = when {
+                            showBatteryBanner -> {
+                                {
                                     Surface(
-                                        color = MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.6f),
-                                        shape = RoundedCornerShape(14.dp),
-                                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.tertiary.copy(alpha = 0.45f)),
+                                        color = MaterialTheme.colorScheme.surfaceContainerHigh,
+                                        shape = RoundedCornerShape(16.dp),
+                                        tonalElevation = 2.dp,
                                         modifier = Modifier
                                             .fillMaxWidth()
-                                            .padding(horizontal = 16.dp, vertical = 6.dp)
+                                            .padding(horizontal = 16.dp, vertical = 4.dp)
                                     ) {
                                         Row(
                                             modifier = Modifier
                                                 .fillMaxWidth()
-                                                .padding(horizontal = 12.dp, vertical = 4.dp),
+                                                .padding(start = 14.dp, end = 6.dp, top = 4.dp, bottom = 4.dp),
                                             verticalAlignment = Alignment.CenterVertically,
                                             horizontalArrangement = Arrangement.SpaceBetween
                                         ) {
@@ -680,14 +632,14 @@ fun MainAppContent(
                                                 )
                                                 Spacer(modifier = Modifier.width(8.dp))
                                                 Text(
-                                                    text = "قد يوقف النظام التشغيل بالخلفية — فعّل حماية البطارية",
+                                                    text = "فعّل حماية البطارية لاستمرار الخلفية",
                                                     color = MaterialTheme.colorScheme.onSurface,
                                                     style = MaterialTheme.typography.bodySmall
                                                 )
                                             }
                                             Row(verticalAlignment = Alignment.CenterVertically) {
                                                 TextButton(onClick = { showBackgroundShieldDialog = true }) {
-                                                    Text("تجاوز القيود", color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                                                    Text("ضبط", color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Bold, fontSize = 12.sp)
                                                 }
                                                 TextButton(onClick = { restrictionBannerDismissed = true }) {
                                                     Text("لاحقاً", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 11.sp)
@@ -696,27 +648,92 @@ fun MainAppContent(
                                         }
                                     }
                                 }
-
-                                Box(modifier = Modifier.weight(1f).fillMaxWidth()) {
-                                    when (currentTab) {
-                                        AppTab.VIDEOS -> VideosScreen(
-                                            viewModel = viewModel,
-                                            isBatteryProtected = isBatteryProtected,
-                                            onOpenBackgroundShield = { showBackgroundShieldDialog = true }
-                                        )
-                                        AppTab.MUSIC -> MusicScreen(
-                                            viewModel = viewModel,
-                                            isBatteryProtected = isBatteryProtected,
-                                            onOpenBackgroundShield = { showBackgroundShieldDialog = true }
-                                        )
-                                        AppTab.PLAYLISTS -> PlaylistsScreen(viewModel = viewModel)
-                                        AppTab.DOWNLOADER -> DownloaderScreen(
-                                            viewModel = viewModel,
-                                            onRequestNotificationPermission = requestNotificationsIfNeeded,
-                                            isBatteryProtected = isBatteryProtected,
-                                            onOpenBackgroundShield = { showBackgroundShieldDialog = true }
-                                        )
+                            }
+                            showNotifBanner -> {
+                                {
+                                    Surface(
+                                        color = MaterialTheme.colorScheme.surfaceContainerHigh,
+                                        shape = RoundedCornerShape(16.dp),
+                                        tonalElevation = 2.dp,
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .padding(horizontal = 16.dp, vertical = 4.dp)
+                                    ) {
+                                        Row(
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .padding(start = 14.dp, end = 6.dp, top = 4.dp, bottom = 4.dp),
+                                            verticalAlignment = Alignment.CenterVertically,
+                                            horizontalArrangement = Arrangement.SpaceBetween
+                                        ) {
+                                            Row(
+                                                modifier = Modifier.weight(1f),
+                                                verticalAlignment = Alignment.CenterVertically
+                                            ) {
+                                                Icon(
+                                                    imageVector = Icons.Default.NotificationsActive,
+                                                    contentDescription = null,
+                                                    tint = MaterialTheme.colorScheme.primary,
+                                                    modifier = Modifier.size(18.dp)
+                                                )
+                                                Spacer(modifier = Modifier.width(8.dp))
+                                                Text(
+                                                    text = "فعّل الإشعارات لعرض تحكم المشغّل",
+                                                    color = MaterialTheme.colorScheme.onSurface,
+                                                    style = MaterialTheme.typography.bodySmall
+                                                )
+                                            }
+                                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                                TextButton(onClick = { requestNotificationsIfNeeded() }) {
+                                                    Text("تفعيل", color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                                                }
+                                                TextButton(onClick = { notificationBannerDismissed = true }) {
+                                                    Text("لاحقاً", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 11.sp)
+                                                }
+                                            }
+                                        }
                                     }
+                                }
+                            }
+                            else -> null
+                        }
+
+                        Column(
+                            modifier = Modifier
+                                .weight(1f)
+                                .fillMaxHeight(),
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .fillMaxWidth()
+                                    .widthIn(max = 920.dp)
+                            ) {
+                                when (currentTab) {
+                                    AppTab.VIDEOS -> VideosScreen(
+                                        viewModel = viewModel,
+                                        isBatteryProtected = isBatteryProtected,
+                                        onOpenBackgroundShield = { showBackgroundShieldDialog = true },
+                                        headerNotice = topNoticeBanner
+                                    )
+                                    AppTab.MUSIC -> MusicScreen(
+                                        viewModel = viewModel,
+                                        isBatteryProtected = isBatteryProtected,
+                                        onOpenBackgroundShield = { showBackgroundShieldDialog = true },
+                                        headerNotice = topNoticeBanner
+                                    )
+                                    AppTab.PLAYLISTS -> PlaylistsScreen(
+                                        viewModel = viewModel,
+                                        headerNotice = topNoticeBanner
+                                    )
+                                    AppTab.DOWNLOADER -> DownloaderScreen(
+                                        viewModel = viewModel,
+                                        onRequestNotificationPermission = requestNotificationsIfNeeded,
+                                        isBatteryProtected = isBatteryProtected,
+                                        onOpenBackgroundShield = { showBackgroundShieldDialog = true },
+                                        headerNotice = topNoticeBanner
+                                    )
                                 }
                             }
 

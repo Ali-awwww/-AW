@@ -95,6 +95,7 @@ fun MusicScreen(
     viewModel: MediaPlayerViewModel,
     isBatteryProtected: Boolean = true,
     onOpenBackgroundShield: () -> Unit = {},
+    headerNotice: (@Composable () -> Unit)? = null,
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
@@ -283,11 +284,13 @@ fun MusicScreen(
                 }
             )
 
+            headerNotice?.invoke()
+
             LazyColumn(
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(horizontal = 16.dp),
-                contentPadding = PaddingValues(top = 4.dp, bottom = 148.dp),
+                contentPadding = PaddingValues(top = 6.dp, bottom = 148.dp),
                 verticalArrangement = Arrangement.spacedBy(10.dp)
             ) {
                 item {
@@ -330,14 +333,14 @@ fun MusicScreen(
                             },
                             singleLine = true,
                             colors = OutlinedTextFieldDefaults.colors(
-                                focusedContainerColor = MaterialTheme.colorScheme.surfaceContainer,
-                                unfocusedContainerColor = MaterialTheme.colorScheme.surfaceContainerLow,
+                                focusedContainerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+                                unfocusedContainerColor = MaterialTheme.colorScheme.surfaceContainer,
                                 focusedBorderColor = MaterialTheme.colorScheme.secondary,
-                                unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant,
+                                unfocusedBorderColor = Color.Transparent,
                                 focusedTextColor = MaterialTheme.colorScheme.onSurface,
                                 unfocusedTextColor = MaterialTheme.colorScheme.onSurface
                             ),
-                            shape = RoundedCornerShape(18.dp),
+                            shape = RoundedCornerShape(28.dp),
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .testTag("search_audio_input")
