@@ -346,7 +346,7 @@ fun FullScreenAudioPlayer(
                             letterSpacing = 1.sp
                         )
                         Text(
-                            text = currentItem?.category ?: "VibePlayer",
+                            text = currentItem?.category ?: "نبض ميديا",
                             color = TextSecondary,
                             fontSize = 13.sp
                         )

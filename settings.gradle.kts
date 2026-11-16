@@ -22,6 +22,6 @@ dependencyResolutionManagement {
   }
 }
 
-rootProject.name = "مشغل الAW"
+rootProject.name = "NabdhMedia"
 
 include(":app")
