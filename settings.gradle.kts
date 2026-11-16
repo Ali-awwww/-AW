@@ -22,6 +22,6 @@ dependencyResolutionManagement {
   }
 }
 
-rootProject.name = "NabdhMedia"
+rootProject.name = "MediaPlayer"
 
 include(":app")

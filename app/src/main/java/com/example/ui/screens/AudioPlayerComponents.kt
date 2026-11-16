@@ -346,7 +346,7 @@ fun FullScreenAudioPlayer(
                             letterSpacing = 1.sp
                         )
                         Text(
-                            text = currentItem?.category ?: "نبض ميديا",
+                            text = currentItem?.category ?: "مشغل الوسائط",
                             color = TextSecondary,
                             fontSize = 13.sp
                         )

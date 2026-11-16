@@ -1,5 +1,5 @@
 {
-  "name": "نبض ميديا",
+  "name": "مشغل الوسائط",
   "description": "Advanced Video & Background Audio Player built with Jetpack Compose and Media3 ExoPlayer",
   "requestFramePermissions": [],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
