@@ -1,7 +1,9 @@
 package com.example.ui.screens
 
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -42,6 +44,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
@@ -53,11 +56,13 @@ import com.example.media.MediaPlayerViewModel
 import com.example.media.MediaType
 import com.example.ui.theme.DarkSurfaceBorder
 import com.example.ui.theme.DarkSurfaceElevated
+import com.example.ui.theme.DarkBackground
 import com.example.ui.theme.NeonCyan
 import com.example.ui.theme.NeonPink
 import com.example.ui.theme.TextMuted
 import com.example.ui.theme.TextPrimary
 import com.example.ui.theme.TextSecondary
+import coil.compose.AsyncImage
 
 @Composable
 fun DownloaderScreen(
@@ -181,7 +186,7 @@ fun DownloaderScreen(
                             modifier = Modifier
                                 .size(60.dp)
                                 .clip(RoundedCornerShape(0.dp)),
-                            contentScale = androidx.compose.layout.ContentScale.Crop
+                            contentScale = ContentScale.Crop
                         )
                         Spacer(modifier = Modifier.width(12.dp))
                         Column {

@@ -68,6 +68,7 @@ import com.example.media.MediaType
 import com.example.ui.components.AddStreamDialog
 import com.example.ui.components.CategoryFilterRow
 import com.example.ui.components.MediaTimeFormatter
+import com.example.ui.components.isometricShadow
 import com.example.ui.theme.DarkSurface
 import com.example.ui.theme.DarkSurfaceBorder
 import com.example.ui.theme.DarkSurfaceElevated
@@ -269,7 +270,7 @@ fun VideoCardItem(
         border = androidx.compose.foundation.BorderStroke(1.dp, DarkSurfaceBorder),
         modifier = modifier
             .fillMaxWidth()
-            .com.example.ui.components.isometricShadow(NeonCyan.copy(alpha = 0.1f))
+            .isometricShadow(NeonCyan.copy(alpha = 0.1f))
             .testTag("video_item_${video.id}")
     ) {
         Column {

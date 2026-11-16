@@ -69,6 +69,7 @@ import com.example.ui.components.AddStreamDialog
 import com.example.ui.components.CategoryFilterRow
 import com.example.ui.components.MediaTimeFormatter
 import com.example.ui.components.WaveformVisualizer
+import com.example.ui.components.isometricShadow
 import com.example.ui.theme.DarkSurfaceBorder
 import com.example.ui.theme.DarkSurfaceElevated
 import com.example.ui.theme.NeonCyan
@@ -305,7 +306,7 @@ fun AudioTrackRowItem(
         ),
         modifier = modifier
             .fillMaxWidth()
-            .com.example.ui.components.isometricShadow(if (isSelected) NeonCyan.copy(alpha = 0.15f) else Color.Transparent)
+            .isometricShadow(if (isSelected) NeonCyan.copy(alpha = 0.15f) else Color.Transparent)
             .testTag("audio_track_${audio.id}")
     ) {
         Row(
