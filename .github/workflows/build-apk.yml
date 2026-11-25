@@ -58,13 +58,70 @@ jobs:
           path: app/build/outputs/apk/debug/app-debug.apk
           retention-days: 14
 
+      # Release signing: the fixed release keystore (alias "upload") lives in
+      # the ANDROID_KEYSTORE_BASE64 / ANDROID_KEYSTORE_PASSWORD /
+      # ANDROID_KEY_ALIAS / ANDROID_KEY_PASSWORD secrets. On tag builds the
+      # release APK is built with it and published to the GitHub Release
+      # instead of the debug APK, so installs can update in place.
+      # app/build.gradle.kts already reads KEYSTORE_PATH / STORE_PASSWORD /
+      # KEY_PASSWORD (alias "upload" is hardcoded there).
+      - name: Restore Release Keystore (tags only)
+        if: startsWith(github.ref, 'refs/tags/v')
+        env:
+          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: |
+          set -euo pipefail
+          if [ -z "$ANDROID_KEYSTORE_BASE64" ] || [ -z "$ANDROID_KEYSTORE_PASSWORD" ] || [ -z "$ANDROID_KEY_PASSWORD" ]; then
+            echo "::error::Release signing secrets (ANDROID_KEYSTORE_BASE64 / ANDROID_KEYSTORE_PASSWORD / ANDROID_KEY_PASSWORD) are not set; cannot build a signed release APK."
+            exit 1
+          fi
+          printf '%s' "$ANDROID_KEYSTORE_BASE64" | tr -d ' \t\r\n' | base64 -d > my-upload-key.jks
+          test -s my-upload-key.jks
+          keytool -list -keystore my-upload-key.jks -storepass "$ANDROID_KEYSTORE_PASSWORD" -alias "${ANDROID_KEY_ALIAS:-upload}" >/dev/null
+          {
+            echo "KEYSTORE_PATH=${GITHUB_WORKSPACE}/my-upload-key.jks"
+            echo "STORE_PASSWORD=${ANDROID_KEYSTORE_PASSWORD}"
+            echo "KEY_PASSWORD=${ANDROID_KEY_PASSWORD}"
+          } >> "$GITHUB_ENV"
+          echo "Release keystore restored and validated."
+
+      - name: Build Release APK (tags only)
+        if: startsWith(github.ref, 'refs/tags/v')
+        run: ./gradlew assembleRelease --stacktrace
+
+      - name: Verify signed Release APK (tags only)
+        if: startsWith(github.ref, 'refs/tags/v')
+        run: |
+          set -euo pipefail
+          APK=app/build/outputs/apk/release/app-release.apk
+          test -s "$APK"
+          APKSIGNER=$(find "${ANDROID_HOME:-/usr/local/lib/android/sdk}/build-tools" -name apksigner 2>/dev/null | sort -V | tail -n 1)
+          test -n "$APKSIGNER"
+          "$APKSIGNER" verify --verbose --print-certs "$APK"
+          sha256sum "$APK"
+
+      - name: Upload Release APK Artifact (tags only)
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: actions/upload-artifact@v4
+        with:
+          name: VibePlayer-Release-APK
+          path: app/build/outputs/apk/release/app-release.apk
+          retention-days: 30
+
       - name: Create GitHub Release (on tag)
         if: startsWith(github.ref, 'refs/tags/v')
         uses: softprops/action-gh-release@v2
         with:
-          files: app/build/outputs/apk/debug/app-debug.apk
+          files: app/build/outputs/apk/release/app-release.apk
           name: Release ${{ github.ref_name }}
           draft: false
           prerelease: false
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Clean Up Release Keystore
+        if: always()
+        run: rm -f my-upload-key.jks
