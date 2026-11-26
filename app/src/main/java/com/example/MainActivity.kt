@@ -512,7 +512,7 @@ fun MainAppContent(
                                         ),
                                         modifier = Modifier.testTag("nav_downloader_tab")
                                     )
-                                    NavigationBarItem(selected = false, onClick = { context.startActivity(android.content.Intent(android.content.Intent.ACTION_VIEW, android.net.Uri.parse("https://apps-showcase.pages.dev")).apply { addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK) }) }, icon = { Icon(androidx.compose.material.icons.filled.Apps, contentDescription = "تطبيقاتنا") }, label = { Text("تطبيقاتنا", style = MaterialTheme.typography.labelSmall) }, modifier = Modifier.testTag("nav_our_apps_tab"))
+                                    NavigationBarItem(selected = false, onClick = { context.startActivity(android.content.Intent(android.content.Intent.ACTION_VIEW, android.net.Uri.parse("https://apps-showcase.pages.dev")).apply { addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK) }) }, icon = { Icon(androidx.compose.material.icons.Icons.Filled.Apps, contentDescription = "تطبيقاتنا") }, label = { Text("تطبيقاتنا", style = MaterialTheme.typography.labelSmall) }, modifier = Modifier.testTag("nav_our_apps_tab"))
                                 }
                             }
                         }
@@ -593,7 +593,7 @@ fun MainAppContent(
                                     ),
                                     modifier = Modifier.testTag("nav_downloader_tab")
                                 )
-                                NavigationRailItem(selected = false, onClick = { context.startActivity(android.content.Intent(android.content.Intent.ACTION_VIEW, android.net.Uri.parse("https://apps-showcase.pages.dev")).apply { addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK) }) }, icon = { Icon(androidx.compose.material.icons.filled.Apps, contentDescription = "تطبيقاتنا") }, label = { Text("تطبيقاتنا", style = MaterialTheme.typography.labelSmall) }, modifier = Modifier.testTag("nav_our_apps_rail_tab"))
+                                NavigationRailItem(selected = false, onClick = { context.startActivity(android.content.Intent(android.content.Intent.ACTION_VIEW, android.net.Uri.parse("https://apps-showcase.pages.dev")).apply { addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK) }) }, icon = { Icon(androidx.compose.material.icons.Icons.Filled.Apps, contentDescription = "تطبيقاتنا") }, label = { Text("تطبيقاتنا", style = MaterialTheme.typography.labelSmall) }, modifier = Modifier.testTag("nav_our_apps_rail_tab"))
 
                                 Spacer(modifier = Modifier.weight(1f))
                             }
